@@ -1,0 +1,22 @@
+{
+    "name":"github.com/gschat/gschat",
+
+    "domain":"golang|gslang",
+
+    "import":[
+        {"name" : "github.com/gsmake/golang","domain":"task","version":"release/v3.0"},
+        {"name" : "github.com/gsrpc/gsrpc","domain":"task|gslang","version":"release/v1.0"},
+        {"name" : "github.com/gsrpc/gorpc","version":"release/v1.0"},
+        {"name" : "github.com/gsdocker/gsactor","version":"release/v1.0"}
+    ],
+
+    "properties":{
+        "gsrpc":{
+            "test":["github.com/gsrpc/gsrpc","./gschat.gs","./service.gs"]
+        },
+
+        "gsmake.golang.test" :[
+           {"dir":"./","flags":"-bench . -cpu 4 "}
+        ]
+    }
+}
