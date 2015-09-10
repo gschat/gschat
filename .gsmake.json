@@ -18,6 +18,11 @@
 
         "gsmake.golang.test" :[
            {"dir":"./","flags":"-bench . -cpu 4 "}
-        ]
+       ],
+
+       "gsmake.golang.binary" :{
+             "allinone" : "cmd/allinone",
+             "simulator" : "cmd/simulator"
+       }
     }
 }

@@ -76,6 +76,7 @@ func createDevice(name string) (gorpc.Sink, *net.TCPClient) {
 	device.OSVersion = "1.0"
 
 	return clientSink, net.NewTCPClient(
+		name,
 		"127.0.0.1:13512",
 		gorpc.BuildPipeline().Handler(
 			"dh-client",
