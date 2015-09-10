@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"math/big"
-	"math/rand"
 	"runtime"
 	"time"
 
@@ -62,11 +61,11 @@ func main() {
 
 	gslogger.NewFlags(gslogger.ERROR | gslogger.WARN | gslogger.DEBUG | gslogger.INFO)
 
-	rand.Seed(time.Now().Unix())
+	// rand.Seed(time.Now().Unix())
 
 	for i := 0; i < *clients; i++ {
 
-		<-time.After(time.Millisecond * time.Duration(rand.Intn(1000)))
+		// <-time.After(time.Millisecond * time.Duration(rand.Intn(10)))
 
 		createDevice(fmt.Sprintf("%s(%d)", *name, i))
 	}
