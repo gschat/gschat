@@ -64,7 +64,7 @@ func main() {
 
 	for i := 0; i < *clients; i++ {
 
-		<-time.After(time.Second * time.Duration(rand.Intn(10)))
+		<-time.After(time.Millisecond * time.Duration(rand.Intn(1000)))
 
 		createDevice(fmt.Sprintf("simulator(%d)", i))
 	}
