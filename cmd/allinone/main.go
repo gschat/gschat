@@ -1,7 +1,11 @@
 package main
 
 import (
+	"log"
 	"time"
+
+	"net/http"
+	_ "net/http/pprof"
 
 	"github.com/gschat/gschat"
 	"github.com/gschat/gschat/server"
@@ -28,6 +32,10 @@ func main() {
 		if agents != nil {
 			agents.Close()
 		}
+	}()
+
+	go func() {
+		log.Println(http.ListenAndServe("localhost:6060", nil))
 	}()
 
 	gslogger.NewFlags(gslogger.ERROR | gslogger.WARN | gslogger.DEBUG | gslogger.INFO)
