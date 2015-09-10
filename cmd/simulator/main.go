@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"math/big"
+	"runtime"
 	"time"
 
 	"github.com/gsdocker/gslogger"
@@ -51,6 +52,8 @@ func createDevice(name string) (gorpc.Sink, *net.TCPClient) {
 }
 
 func main() {
+
+	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	flag.Parse()
 
