@@ -17,6 +17,8 @@ var ip = flag.String("s", "127.0.0.1:13516", "set the server ip address")
 
 var clients = flag.Int("c", 1000, "set the simulator count")
 
+var name = flag.String("n", "simulator", "set simulator name")
+
 func createDevice(name string) (gorpc.Sink, *net.TCPClient) {
 	G, _ := new(big.Int).SetString("6849211231874234332173554215962568648211715948614349192108760170867674332076420634857278025209099493881977517436387566623834457627945222750416199306671083", 0)
 
@@ -66,7 +68,7 @@ func main() {
 
 		<-time.After(time.Millisecond * time.Duration(rand.Intn(1000)))
 
-		createDevice(fmt.Sprintf("simulator(%d)", i))
+		createDevice(fmt.Sprintf("%s(%d)", *name, i))
 	}
 
 	<-make(chan bool)
