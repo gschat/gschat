@@ -11,7 +11,7 @@ import (
 	"github.com/gsrpc/gorpc/net"
 )
 
-var ip = flag.String("s", "127.0.0.1:13512", "set the server ip address")
+var ip = flag.String("s", "127.0.0.1:13516", "set the server ip address")
 
 var clients = flag.Int("c", 1000, "set the simulator count")
 

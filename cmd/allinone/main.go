@@ -34,7 +34,7 @@ func main() {
 
 	var err error
 
-	proxy, err = gsproxy.BuildProxy(gschat.NewIMProxy).Run("im-test-proxy")
+	proxy, err = gsproxy.BuildProxy(gschat.NewIMProxy).AddrF(":13516").Run("im-test-proxy")
 
 	if err != nil {
 		panic(err)
