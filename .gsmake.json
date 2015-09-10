@@ -7,12 +7,13 @@
         {"name" : "github.com/gsmake/golang","domain":"task","version":"release/v3.0"},
         {"name" : "github.com/gsrpc/gsrpc","domain":"task|gslang","version":"release/v1.0"},
         {"name" : "github.com/gsrpc/gorpc","version":"release/v1.0"},
-        {"name" : "github.com/gsdocker/gsactor","version":"release/v1.0"}
+        {"name" : "github.com/gsdocker/gsactor","version":"release/v1.0"},
+        {"name" : "github.com/boltdb/bolt","domain":"golang","version":"c2745b3c62985affcf08d0522135f4747e9b81f3"}
     ],
 
     "properties":{
         "gsrpc":{
-            "test":["github.com/gsrpc/gsrpc","./gschat.gs","./service.gs"]
+            "golang":["github.com/gsrpc/gsrpc","./gschat.gs","./service.gs","./mq/mq.gs"]
         },
 
         "gsmake.golang.test" :[

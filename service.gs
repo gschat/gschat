@@ -3,11 +3,15 @@ package com.gschat;
 
 using gslang.Exception;
 using gslang.Lang;
+using com.gschat.ServiceType;
+using com.gsrpc.Device;
 
 @Lang(Name:"golang",Package:"github.com/gschat/gschat")
 
-enum ServiceType{
-    IM,ANPS,Auth
+table NamedService {
+    string          Name;
+    ServiceType     Type;
+    uint32          VNodes;
 }
 
 /**
@@ -15,23 +19,21 @@ enum ServiceType{
  */
 contract Service {
     /**
-     * get service type
+     * get service name
      */
-    ServiceType Type();
+    NamedService Name();
 }
 
-
 /**
- * implement IM service
+ * im manager interface
  */
-contract IMService {
+contract IManager {
     /**
-     * get im service name,which will be used as consistent hash key
+     * bind user with device
      */
-    string Name();
-
+    void Bind(string username,Device device);
     /**
-     * virtual nodes
+     * unbind user from device
      */
-    uint32 VNodes();
+    void Unbind(string username,Device device);
 }
