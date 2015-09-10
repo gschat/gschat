@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"math/big"
+	"math/rand"
 	"runtime"
 	"time"
 
@@ -40,7 +41,7 @@ func createDevice(name string) (gorpc.Sink, *net.TCPClient) {
 		).Handler(
 			"heartbeat-client",
 			func() gorpc.Handler {
-				return net.NewHeartbeatHandler(time.Second * 10)
+				return net.NewHeartbeatHandler(time.Second * 20)
 			},
 		).Handler(
 			"sink-client",
@@ -59,7 +60,12 @@ func main() {
 
 	gslogger.NewFlags(gslogger.ERROR | gslogger.WARN | gslogger.DEBUG | gslogger.INFO)
 
+	rand.Seed(time.Now().Unix())
+
 	for i := 0; i < *clients; i++ {
+
+		<-time.After(time.Second * time.Duration(rand.Intn(10)))
+
 		createDevice(fmt.Sprintf("simulator(%d)", i))
 	}
 
