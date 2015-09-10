@@ -23,17 +23,18 @@ func init() {
 
 	filepath.Walk("./", func(newpath string, info os.FileInfo, err error) error {
 
-		if info.IsDir() {
+		if info.IsDir() && newpath != "./" {
 
 			return filepath.SkipDir
 		}
 
 		if filepath.Ext(info.Name()) == ".storage" {
-			os.Remove(filepath.Join("./", info.Name()))
+
+			os.Remove(newpath)
 		}
 
 		if filepath.Ext(info.Name()) == ".db" {
-			os.Remove(filepath.Join("./", info.Name()))
+			os.Remove(newpath)
 		}
 
 		return err

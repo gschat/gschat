@@ -58,13 +58,13 @@ func (agentQ *_IMAgentQ) heartBeatLoop() {
 
 func (agentQ *_IMAgentQ) sendLoop(stream *mq.Stream) {
 
-	agentQ.D("user %s login with %s create receive stream(%s)", agentQ.name, agentQ.device, stream.Offset)
+	agentQ.D("user %s login with %s create receive stream(%d)", agentQ.name, agentQ.device, stream.Offset)
 
 	for {
 		select {
 		case <-agentQ.closeflag:
 
-			agentQ.D("user %s login with %s receive stream(%s) -- closed", agentQ.name, agentQ.device, stream.Offset)
+			agentQ.D("user %s login with %s receive stream(%d) -- closed", agentQ.name, agentQ.device, stream.Offset)
 
 			stream.Close()
 
@@ -73,21 +73,21 @@ func (agentQ *_IMAgentQ) sendLoop(stream *mq.Stream) {
 
 			if !ok {
 
-				agentQ.D("user %s login with %s receive stream(%s) -- closed", agentQ.name, agentQ.device, stream.Offset)
+				agentQ.D("user %s login with %s receive stream(%d) -- closed", agentQ.name, agentQ.device, stream.Offset)
 
 				return
 			}
 
-			agentQ.D("[%s:%s] receive stream(%s), push mail(%d)", agentQ.name, agentQ.device, stream.Offset, msg.SQID)
+			agentQ.D("[%s:%s] receive stream(%d), push mail(%d)", agentQ.name, agentQ.device, stream.Offset, msg.SQID)
 
 			err := agentQ.client.Push(msg)
 
 			if err != nil {
-				agentQ.D("[%s:%s] receive stream(%s), push mail(%d) -- failed\n%s", agentQ.name, agentQ.device, stream.Offset, msg.SQID, err)
+				agentQ.D("[%s:%s] receive stream(%d), push mail(%d) -- failed\n%s", agentQ.name, agentQ.device, stream.Offset, msg.SQID, err)
 				continue
 			}
 
-			agentQ.D("[%s:%s] receive stream(%s), push mail(%d) -- success", agentQ.name, agentQ.device, stream.Offset, msg.SQID)
+			agentQ.D("[%s:%s] receive stream(%d), push mail(%d) -- success", agentQ.name, agentQ.device, stream.Offset, msg.SQID)
 		}
 	}
 }
