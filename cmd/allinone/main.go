@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"runtime"
 	"time"
 
@@ -38,11 +37,13 @@ func main() {
 		}
 	}()
 
+	log := gslogger.Get("profile")
+
 	go func() {
-		log.Println(http.ListenAndServe("localhost:6060", nil))
+		log.E("%s", http.ListenAndServe("localhost:6060", nil))
 	}()
 
-	// gslogger.NewFlags(gslogger.ERROR | gslogger.WARN | gslogger.DEBUG | gslogger.INFO)
+	gslogger.NewFlags(gslogger.ERROR | gslogger.WARN | gslogger.DEBUG | gslogger.INFO)
 
 	var err error
 
@@ -58,5 +59,7 @@ func main() {
 
 	agentsystem.Connect("im-test-proxy", "127.0.0.1:15827", 1024, 5*time.Second)
 
-	<-make(chan bool)
+	for _ = range time.Tick(20 * time.Second) {
+		log.I("\n%s", gorpc.PrintProfile())
+	}
 }

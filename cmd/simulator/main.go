@@ -7,6 +7,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/gsdocker/gslogger"
 	"github.com/gsrpc/gorpc"
 	"github.com/gsrpc/gorpc/handler"
 	"github.com/gsrpc/gorpc/tcp"
@@ -42,7 +43,7 @@ func createDevice(name string) {
 				return handler.NewHeartbeatHandler(5 * time.Second)
 			},
 		),
-	).Remote(*ip).Reconnect(time.Second)
+	).Remote(*ip).Reconnect(5 * time.Second)
 
 	clientBuilder.Connect(name)
 }
@@ -53,7 +54,7 @@ func main() {
 
 	flag.Parse()
 
-	// gslogger.NewFlags(gslogger.ERROR | gslogger.WARN | gslogger.DEBUG | gslogger.INFO)
+	gslogger.NewFlags(gslogger.ERROR | gslogger.WARN | gslogger.DEBUG | gslogger.INFO)
 
 	// rand.Seed(time.Now().Unix())
 
