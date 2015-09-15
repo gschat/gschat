@@ -5,12 +5,12 @@ import (
 
 	"github.com/gschat/gschat"
 	"github.com/gschat/gschat/mq"
+	"github.com/gsdocker/gsagent"
 )
 
 type _IMUser struct {
-	name   string                   // usernmae
-	fifo   mq.FIFO                  // user mq
-	agents map[*_IMAgent]*_IMAgentQ // bind agents
+	name string  // usernmae
+	fifo mq.FIFO // user mq
 }
 
 func (server *_IMServer) newUser(name string) (*_IMUser, error) {
@@ -38,17 +38,6 @@ func (user *_IMUser) put(mail *gschat.Mail) (retval uint64, err error) {
 	return mail.TS, nil
 }
 
-func (user *_IMUser) bind(agent *_IMAgent) *_IMAgentQ {
-
-	agentQ, ok := user.agents[agent]
-
-	if !ok {
-		agentQ = newAgentQ(user.name, user.fifo, agent)
-	}
-
-	return agentQ
-}
-
-func (user *_IMUser) unbind(agent *_IMAgent) {
-	delete(user.agents, agent)
+func (user *_IMUser) createAgentQ(context gsagent.Context) *_IMAgentQ {
+	return newAgentQ(user.name, user.fifo, context)
 }

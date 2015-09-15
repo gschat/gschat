@@ -13,7 +13,6 @@ table Mail {
     string      Receiver    ; // IM data receiver
     MailType    Type        ; // IM data type {@link DataType}
     string      Content     ; // IM data message
-
 }
 
 

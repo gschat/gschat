@@ -8,6 +8,7 @@ import (
 	"github.com/gsdocker/gsconfig"
 	"github.com/gsdocker/gslogger"
 	"github.com/gsdocker/gsproxy"
+	"github.com/gsrpc/gorpc"
 )
 
 type _IMProxy struct {
@@ -34,30 +35,30 @@ func NewIMProxy() gsproxy.Proxy {
 	}
 }
 
-func (proxy *_IMProxy) OpenProxy(context gsproxy.Context) error {
-	proxy.D("open improxy %s", context.Name())
-	proxy.name = context.Name()
+func (proxy *_IMProxy) Register(context gsproxy.Context) error {
+	proxy.D("open improxy %s", context.String())
+	proxy.name = context.String()
 
 	return nil
 }
 
-func (proxy *_IMProxy) CloseProxy(context gsproxy.Context) {
-	proxy.D("close improxy", context.Name())
+func (proxy *_IMProxy) Unregister(context gsproxy.Context) {
+	proxy.D("close improxy", context.String())
 }
 
-func (proxy *_IMProxy) CreateServer(server gsproxy.Server) error {
+func (proxy *_IMProxy) AddServer(context gsproxy.Context, server gsproxy.Server) error {
 
 	proxy.Lock()
 	defer proxy.Unlock()
 
 	proxy.servers[server] = nil
 
-	go proxy.bindServer(server)
+	go proxy.bindServer(context, server)
 
 	return nil
 }
 
-func (proxy *_IMProxy) bindServer(server gsproxy.Server) {
+func (proxy *_IMProxy) bindServer(context gsproxy.Context, server gsproxy.Server) {
 	proxy.D("try bind server [%p] ...", server)
 
 	service := BindService(uint16(ServiceTypeUnknown), server)
@@ -66,15 +67,15 @@ func (proxy *_IMProxy) bindServer(server gsproxy.Server) {
 
 	if err != nil {
 		proxy.E("query server(%p) provide service type error\n%s", server, err)
-		proxy.CloseServer(server)
+		proxy.RemoveServer(context, server)
 		return
 	}
 
-	proxy.dobind(server, namedService)
+	proxy.dobind(context, server, namedService)
 
 }
 
-func (proxy *_IMProxy) dobind(server gsproxy.Server, namedService *NamedService) {
+func (proxy *_IMProxy) dobind(context gsproxy.Context, server gsproxy.Server, namedService *NamedService) {
 	proxy.Lock()
 	defer proxy.Unlock()
 
@@ -94,7 +95,7 @@ func (proxy *_IMProxy) dobind(server gsproxy.Server, namedService *NamedService)
 		ring = proxy.auth
 	default:
 		proxy.E("server(%p) provide unknown service type :%s", server, namedService.Type)
-		go proxy.CloseServer(server)
+		go proxy.RemoveServer(context, server)
 		return
 	}
 
@@ -107,7 +108,7 @@ func (proxy *_IMProxy) dobind(server gsproxy.Server, namedService *NamedService)
 	proxy.D("bind service [%p] with name [%s] -- success", server, namedService)
 }
 
-func (proxy *_IMProxy) CloseServer(server gsproxy.Server) {
+func (proxy *_IMProxy) RemoveServer(context gsproxy.Context, server gsproxy.Server) {
 	proxy.Lock()
 	defer proxy.Unlock()
 
@@ -139,7 +140,7 @@ func (proxy *_IMProxy) CloseServer(server gsproxy.Server) {
 	}
 }
 
-func (proxy *_IMProxy) getAuth(device gsproxy.Device) (gsproxy.Server, bool) {
+func (proxy *_IMProxy) getAuth(device *gorpc.Device) (gsproxy.Server, bool) {
 
 	val, ok := proxy.auth.Get(device.String())
 
@@ -182,24 +183,24 @@ func (proxy *_IMProxy) serverName(server gsproxy.Server) string {
 	return "unknown"
 }
 
-func (proxy *_IMProxy) CreateDevice(device gsproxy.Device) error {
+func (proxy *_IMProxy) AddClient(context gsproxy.Context, client gsproxy.Client) error {
 
-	proxy.createBridge(device)
+	proxy.createBridge(context, client)
 
 	return nil
 }
 
-func (proxy *_IMProxy) CloseDevice(device gsproxy.Device) {
+func (proxy *_IMProxy) RemoveClient(context gsproxy.Context, client gsproxy.Client) {
 
 	proxy.Lock()
 	defer proxy.Unlock()
 
-	bridge, ok := proxy.bridges[device.String()]
+	bridge, ok := proxy.bridges[client.Device().String()]
 	if !ok {
 		return
 	}
 
-	delete(proxy.bridges, device.String())
+	delete(proxy.bridges, client.Device().String())
 
 	go bridge.close()
 }

@@ -6,27 +6,27 @@ import (
 
 	"github.com/gschat/gschat"
 	"github.com/gschat/gschat/mq"
-	"github.com/gsdocker/gsactor"
+	"github.com/gsdocker/gsagent"
 	"github.com/gsdocker/gsconfig"
 	"github.com/gsdocker/gserrors"
 	"github.com/gsdocker/gslogger"
 	"github.com/gsrpc/gorpc"
 )
 
-// implement gsactor.AgentSystem
+// implement gsagent.System
 type _IMServer struct {
-	sync.RWMutex                            // Mixin read write mutex
-	gslogger.Log                            // Mixin logger
-	context      gsactor.AgentSystemContext // agent system context
-	namedService gschat.NamedService        // services
-	users        map[string]*_IMUser        // register users
-	devices      map[string]*_IMAgent       // device agents
-	binders      map[*_IMAgent]*_IMAgentQ   // agent and user binder
-	fsqueue      *mq.MQ                     //
+	sync.RWMutex                       // Mixin read write mutex
+	gslogger.Log                       // Mixin logger
+	context      gsagent.SystemContext // agent system context
+	namedService gschat.NamedService   // services
+	users        map[string]*_IMUser   // register users
+	binders      map[string]*_IMUser   // agent and user binder
+	agents       map[string]*_IMAgent  // agents
+	fsqueue      *mq.MQ                //
 }
 
 // NewIMServer create new im server
-func NewIMServer(vnodes uint32) gsactor.AgentSystem {
+func NewIMServer(vnodes uint32) gsagent.System {
 
 	currentDir, _ := filepath.Abs("./")
 
@@ -43,13 +43,13 @@ func NewIMServer(vnodes uint32) gsactor.AgentSystem {
 			Type:   gschat.ServiceTypeIM,
 		},
 		users:   make(map[string]*_IMUser),
-		devices: make(map[string]*_IMAgent),
-		binders: make(map[*_IMAgent]*_IMAgentQ),
+		binders: make(map[string]*_IMUser),
+		agents:  make(map[string]*_IMAgent),
 		fsqueue: fsqueue,
 	}
 }
 
-func (server *_IMServer) Open(context gsactor.AgentSystemContext) error {
+func (server *_IMServer) Register(context gsagent.SystemContext) error {
 
 	server.D("open")
 
@@ -57,11 +57,21 @@ func (server *_IMServer) Open(context gsactor.AgentSystemContext) error {
 
 	server.namedService.Name = context.Name()
 
-	context.Register(gschat.MakeService(uint16(gschat.ServiceTypeUnknown), server))
-
-	context.Register(gschat.MakeIManager(uint16(gschat.ServiceTypeIM), server))
-
 	return nil
+}
+
+func (server *_IMServer) Unregister(context gsagent.SystemContext) {
+}
+
+func (server *_IMServer) AddTunnel(name string, pipeline gorpc.Pipeline) {
+
+	pipeline.AddService(gschat.MakeService(uint16(gschat.ServiceTypeUnknown), server))
+
+	pipeline.AddService(gschat.MakeIManager(uint16(gschat.ServiceTypeIM), server))
+}
+
+func (server *_IMServer) RemoveTunnel(name string, pipeline gorpc.Pipeline) {
+
 }
 
 func (server *_IMServer) Bind(username string, device *gorpc.Device) (err error) {
@@ -72,32 +82,23 @@ func (server *_IMServer) Bind(username string, device *gorpc.Device) (err error)
 	user, ok := server.users[username]
 
 	if !ok {
-
-		server.D("create user %s", username)
+		var err error
 
 		user, err = server.newUser(username)
 
 		if err != nil {
-			server.D("create user %s -- failed\n%s", username, err)
 			return err
 		}
 
-		server.D("create user %s -- success", username)
-
 		server.users[username] = user
+
+		server.D("create new user %s", username)
 	}
 
-	agent, ok := server.devices[device.String()]
+	if _, ok := server.binders[device.String()]; !ok {
 
-	if !ok {
-		agent = server.newAgent(device)
-
-		server.devices[device.String()] = agent
+		server.binders[device.String()] = user
 	}
-
-	agentQ := user.bind(agent)
-
-	server.binders[agent] = agentQ
 
 	return nil
 }
@@ -107,32 +108,16 @@ func (server *_IMServer) Unbind(username string, device *gorpc.Device) error {
 	server.Lock()
 	defer server.Unlock()
 
-	user, ok := server.users[username]
-
-	if !ok {
-		return nil
+	if user, ok := server.binders[device.String()]; ok && user.name == username {
+		delete(server.binders, device.String())
 	}
 
-	agent, ok := server.devices[device.String()]
-
-	if !ok {
-		return nil
+	if client, ok := server.agents[device.String()]; ok {
+		client.close()
+		delete(server.agents, device.String())
 	}
-
-	user.unbind(agent)
-
-	delete(server.binders, agent)
 
 	return nil
-}
-
-func (server *_IMServer) agentQ(agent *_IMAgent) (agentQ *_IMAgentQ, ok bool) {
-	server.RLock()
-	defer server.RUnlock()
-
-	agentQ, ok = server.binders[agent]
-
-	return
 }
 
 func (server *_IMServer) user(username string) (user *_IMUser, ok bool) {
@@ -150,13 +135,4 @@ func (server *_IMServer) Name() (*gschat.NamedService, error) {
 
 func (server *_IMServer) Close() {
 	server.D("closed")
-}
-
-func (server *_IMServer) removeDevice(key string, agent *_IMAgent) {
-	server.Lock()
-	defer server.Unlock()
-
-	if old, ok := server.devices[key]; ok && old == agent {
-		delete(server.devices, key)
-	}
 }

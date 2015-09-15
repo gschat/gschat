@@ -13,29 +13,29 @@ import (
 type _Bridge struct {
 	gslogger.Log                // mixin log APIs
 	sync.Mutex                  // mutex
-	device       gsproxy.Device // bridge device
+	client       gsproxy.Client // bridge device
 	proxy        *_IMProxy      // proxy belongs to
 	imserver     gsproxy.Server // server
 	username     string         // login username
 }
 
-func (proxy *_IMProxy) createBridge(device gsproxy.Device) {
+func (proxy *_IMProxy) createBridge(context gsproxy.Context, client gsproxy.Client) {
 
 	bridge := &_Bridge{
 		Log:    gslogger.Get("bridge"),
-		device: device,
+		client: client,
 		proxy:  proxy,
 	}
 
-	device.Register(MakeIMAuth(uint16(ServiceTypeAuth), bridge))
+	client.AddService(MakeIMAuth(uint16(ServiceTypeAuth), bridge))
 
-	if bridge.device.ID().OS == gorpc.OSTypeIOS {
-		anps, ok := bridge.proxy.getANPS(device.String())
+	if bridge.client.Device().OS == gorpc.OSTypeIOS {
+		anps, ok := bridge.proxy.getANPS(client.Device().String())
 
 		if ok {
-			bridge.device.Bind(uint16(ServiceTypeANPS), anps)
+			bridge.client.Bind(uint16(ServiceTypeANPS), anps)
 		} else {
-			bridge.W("not found valid anps server for %s", device.String())
+			bridge.W("not found valid anps server for %s", client.Device().String())
 		}
 	}
 }
@@ -51,7 +51,7 @@ func (bridge *_Bridge) Login(username string, properties []*Property) ([]*Proper
 	bridge.Lock()
 	defer bridge.Unlock()
 
-	auth, ok := bridge.proxy.getAuth(bridge.device)
+	auth, ok := bridge.proxy.getAuth(bridge.client.Device())
 
 	if !ok {
 		// reject all income login request
@@ -80,7 +80,7 @@ func (bridge *_Bridge) Login(username string, properties []*Property) ([]*Proper
 		return nil, gorpc.NewRemoteException()
 	}
 
-	err := BindIManager(uint16(ServiceTypeIM), imserver).Bind(username, bridge.device.ID())
+	err := BindIManager(uint16(ServiceTypeIM), imserver).Bind(username, bridge.client.Device())
 
 	if err != nil {
 		bridge.E("%s bind im server %s error\n%s", username, bridge.proxy.serverName(imserver), err)
@@ -89,7 +89,7 @@ func (bridge *_Bridge) Login(username string, properties []*Property) ([]*Proper
 
 	bridge.V("bind server %s for %s -- success", bridge.proxy.serverName(imserver), username)
 
-	bridge.device.Bind(uint16(ServiceTypeIM), imserver)
+	bridge.client.Bind(uint16(ServiceTypeIM), imserver)
 
 	bridge.username = username
 
@@ -100,7 +100,7 @@ func (bridge *_Bridge) Login(username string, properties []*Property) ([]*Proper
 
 func (bridge *_Bridge) unbind() error {
 	if bridge.imserver != nil {
-		return BindIManager(uint16(ServiceTypeIM), bridge.imserver).Unbind(bridge.username, bridge.device.ID())
+		return BindIManager(uint16(ServiceTypeIM), bridge.imserver).Unbind(bridge.username, bridge.client.Device())
 	}
 
 	return nil
@@ -112,19 +112,19 @@ func (bridge *_Bridge) Logoff(property []*Property) error {
 	defer bridge.Unlock()
 
 	if bridge.imserver == nil {
-		bridge.W("%s already logoff", bridge.device)
+		bridge.W("%s already logoff", bridge.client)
 		return nil
 	}
 
 	err := bridge.unbind()
 
 	if err != nil {
-		bridge.E("unbind %s with %s err\n%s", bridge.username, bridge.device, err)
+		bridge.E("unbind %s with %s err\n%s", bridge.username, bridge.client, err)
 	}
 
 	bridge.imserver = nil
 
-	auth, ok := bridge.proxy.getAuth(bridge.device)
+	auth, ok := bridge.proxy.getAuth(bridge.client.Device())
 
 	if !ok {
 

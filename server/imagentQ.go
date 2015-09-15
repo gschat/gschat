@@ -6,6 +6,7 @@ import (
 
 	"github.com/gschat/gschat"
 	"github.com/gschat/gschat/mq"
+	"github.com/gsdocker/gsagent"
 	"github.com/gsdocker/gsconfig"
 	"github.com/gsdocker/gslogger"
 	"github.com/gsrpc/gorpc"
@@ -17,21 +18,23 @@ type _IMAgentQ struct {
 	gslogger.Log                 // mxin Log APIs
 	name         string          // username
 	client       gschat.IMClient // agent
+	context      gsagent.Context //
 	closeflag    chan bool       // close flag
 	stream       *mq.Stream      // send stream
 	fifo         mq.FIFO         // message queue
 	device       *gorpc.Device   // device
 }
 
-func newAgentQ(name string, fifo mq.FIFO, agent *_IMAgent) *_IMAgentQ {
+func newAgentQ(name string, fifo mq.FIFO, context gsagent.Context) *_IMAgentQ {
 
 	agentQ := &_IMAgentQ{
 		Log:       gslogger.Get("im-agent-q"),
 		name:      name,
-		client:    gschat.BindIMClient(uint16(gschat.ServiceTypeClient), agent),
 		closeflag: make(chan bool),
+		context:   context,
 		fifo:      fifo,
-		device:    agent.ID(),
+		device:    context.ID(),
+		client:    gschat.BindIMClient(uint16(gschat.ServiceTypeClient), context),
 	}
 
 	return agentQ
@@ -103,6 +106,8 @@ func (agentQ *_IMAgentQ) heartBeat(id uint32) {
 func (agentQ *_IMAgentQ) close() {
 
 	close(agentQ.closeflag)
+
+	agentQ.context.Close()
 }
 
 func (agentQ *_IMAgentQ) pull(id uint32) error {
