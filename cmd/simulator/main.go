@@ -4,6 +4,8 @@ import (
 	"flag"
 	"fmt"
 	"math/big"
+	"net/http"
+	_ "net/http/pprof"
 	"runtime"
 	"time"
 
@@ -50,6 +52,12 @@ func createDevice(name string) {
 
 func main() {
 
+	log := gslogger.Get("profile")
+
+	go func() {
+		log.E("%s", http.ListenAndServe("localhost:6061", nil))
+	}()
+
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	flag.Parse()
@@ -64,5 +72,7 @@ func main() {
 		createDevice(fmt.Sprintf("%s(%d)", *name, i))
 	}
 
-	<-make(chan bool)
+	for _ = range time.Tick(20 * time.Second) {
+		log.I("\n%s", gorpc.PrintProfile())
+	}
 }
