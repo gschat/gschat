@@ -10,12 +10,11 @@ import (
 
 // IM agent device agent
 type _IMAgent struct {
-	gslogger.Log                     // Mixin log APIs
-	gsagent.Context                  // agent context
-	server          *_IMServer       // server
-	dispatcher      gorpc.Dispatcher // serivce dispatcher
-	device          *gorpc.Device    // device
-	agentQ          *_IMAgentQ       // bound agent Q
+	gslogger.Log                  // Mixin log APIs
+	gsagent.Context               // agent context
+	server          *_IMServer    // server
+	device          *gorpc.Device // device
+	agentQ          *_IMAgentQ    // bound agent Q
 }
 
 func (server *_IMServer) AddAgent(context gsagent.Context) (gsagent.Agent, error) {
@@ -43,7 +42,7 @@ func (server *_IMServer) AddAgent(context gsagent.Context) (gsagent.Agent, error
 
 	agent.Context = context
 
-	agent.dispatcher = gschat.MakeIMServer(uint16(gschat.ServiceTypeIM), agent)
+	context.AddService(gschat.MakeIMServer(uint16(gschat.ServiceTypeIM), agent))
 
 	return agent, nil
 }
@@ -78,8 +77,4 @@ func (agent *_IMAgent) Put(mail *gschat.Mail) (retval uint64, err error) {
 
 func (agent *_IMAgent) Pull(offset uint32) (err error) {
 	return agent.agentQ.pull(offset)
-}
-
-func (agent *_IMAgent) Dispatch(call *gorpc.Request) (callReturn *gorpc.Response, err error) {
-	return agent.dispatcher.Dispatch(call)
 }

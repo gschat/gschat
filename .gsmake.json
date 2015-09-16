@@ -23,7 +23,8 @@
 
        "gsmake.golang.binary" :{
              "allinone" : "cmd/allinone",
-             "simulator" : "cmd/simulator"
+             "simulator" : "cmd/simulator",
+             "gschat-proxy" : "cmd/proxy"
        }
     }
 }

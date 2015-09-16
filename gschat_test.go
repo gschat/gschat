@@ -4,20 +4,25 @@ import (
 	"math/big"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 
 	"github.com/gschat/gschat/server"
-	"github.com/gsdocker/gsactor"
+	"github.com/gsdocker/gsagent"
 	"github.com/gsdocker/gslogger"
 	"github.com/gsdocker/gsproxy"
 	"github.com/gsrpc/gorpc"
-	"github.com/gsrpc/gorpc/net"
+	"github.com/gsrpc/gorpc/handler"
+	"github.com/gsrpc/gorpc/tcp"
 )
 
-var agentsysm gsactor.AgentSystemContext
+var agentsysm gsagent.SystemContext
 
 var proxysysm gsproxy.Context
+var eventLoop = gorpc.NewEventLoop(uint32(runtime.NumCPU()), 2048, 500*time.Millisecond)
+
+var log = gslogger.Get("test")
 
 func init() {
 
@@ -40,56 +45,45 @@ func init() {
 		return err
 	})
 
-	gslogger.NewFlags(gslogger.ERROR | gslogger.WARN | gslogger.DEBUG | gslogger.INFO)
+	gslogger.NewFlags(gslogger.ERROR | gslogger.WARN | gslogger.INFO)
 
-	var err error
-
-	proxysysm, err = gsproxy.BuildProxy(NewIMProxy).Run("im-test-proxy")
-
-	if err != nil {
-		panic(err)
-	}
+	proxysysm = gsproxy.BuildProxy(NewIMProxy()).Build("im-test-proxy", eventLoop)
 
 	<-time.After(time.Second)
 
-	agentsysm, err = gsactor.BuildAgentSystem(func() gsactor.AgentSystem {
-		return server.NewIMServer(10)
-	}).Run("im-test-server")
+	agentsysm = gsagent.New("im-test-server", server.NewIMServer(10), eventLoop, 5)
 
-	if err != nil {
-		panic(err)
-	}
+	agentsysm.Connect("im-test-proxy", "127.0.0.1:15827", 1024, 5*time.Second)
 
 }
 
-func createDevice(name string) (gorpc.Sink, *net.TCPClient) {
+func createDevice(name string) (tcp.Client, error) {
 	G, _ := new(big.Int).SetString("6849211231874234332173554215962568648211715948614349192108760170867674332076420634857278025209099493881977517436387566623834457627945222750416199306671083", 0)
 
 	P, _ := new(big.Int).SetString("13196520348498300509170571968898643110806720751219744788129636326922565480984492185368038375211941297871289403061486510064429072584259746910423138674192557", 0)
 
-	clientSink := gorpc.NewSink(name, time.Second*5, 1024, 10)
-
 	device := gorpc.NewDevice()
 
-	device.ID = "im-client-test"
+	device.ID = name
 
-	device.OSVersion = "1.0"
-
-	return clientSink, net.NewTCPClient(
-		name,
-		"127.0.0.1:13512",
-		gorpc.BuildPipeline().Handler(
+	clientBuilder := tcp.BuildClient(
+		gorpc.BuildPipeline(eventLoop).Handler(
+			"profile",
+			gorpc.ProfileHandler,
+		).Handler(
 			"dh-client",
 			func() gorpc.Handler {
-				return net.NewCryptoClient(device, G, P)
+				return handler.NewCryptoClient(device, G, P)
 			},
 		).Handler(
-			"sink-client",
+			"heatbeat-client",
 			func() gorpc.Handler {
-				return clientSink
+				return handler.NewHeartbeatHandler(5 * time.Second)
 			},
 		),
-	).Connect(time.Second * 1)
+	)
+
+	return clientBuilder.Connect(name)
 }
 
 type _MockClient struct {
@@ -115,15 +109,15 @@ func (mock *_MockClient) Notify(SQID uint32) (err error) {
 
 func TestIM(t *testing.T) {
 
-	sink, client := createDevice("im-test-client")
+	client, _ := createDevice("im-test-client")
 
 	defer client.Close()
 
 	mockClient := newMockClient()
 
-	sink.Register(MakeIMClient(uint16(ServiceTypeClient), mockClient))
+	client.Pipeline().AddService(MakeIMClient(uint16(ServiceTypeClient), mockClient))
 
-	auth := BindIMAuth(uint16(ServiceTypeAuth), sink)
+	auth := BindIMAuth(uint16(ServiceTypeAuth), client.Pipeline())
 
 	token, err := auth.Login("gschat@gmail.com", nil)
 
@@ -131,7 +125,7 @@ func TestIM(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	im := BindIMServer(uint16(ServiceTypeIM), sink)
+	im := BindIMServer(uint16(ServiceTypeIM), client.Pipeline())
 
 	mail := NewMail()
 
@@ -170,13 +164,15 @@ func BenchmarkLoginLogoff(t *testing.B) {
 
 	t.StopTimer()
 
-	sink, client := createDevice("im-test-client")
+	client, _ := createDevice("im-test-client")
 
 	defer client.Close()
 
-	sink.Register(MakeIMClient(uint16(ServiceTypeClient), &_MockClient{}))
+	mockClient := newMockClient()
 
-	auth := BindIMAuth(uint16(ServiceTypeAuth), sink)
+	client.Pipeline().AddService(MakeIMClient(uint16(ServiceTypeClient), mockClient))
+
+	auth := BindIMAuth(uint16(ServiceTypeAuth), client.Pipeline())
 
 	t.StartTimer()
 
