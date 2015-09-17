@@ -64,7 +64,7 @@ func (mock *_MockClient) Connected(pipeline gorpc.Pipeline) {
 	_, err := auth.Login(mock.name, nil)
 
 	if err != nil {
-		mock.E("login error :%s", err)
+		mock.E("login(%s) error :%s", mock.name, err)
 		pipeline.Close()
 		return
 	}

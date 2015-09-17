@@ -79,6 +79,8 @@ func (server *_IMServer) Bind(username string, device *gorpc.Device) (err error)
 	server.Lock()
 	defer server.Unlock()
 
+	server.I("bind user %s to %s", username, device)
+
 	user, ok := server.users[username]
 
 	if !ok {
@@ -92,13 +94,15 @@ func (server *_IMServer) Bind(username string, device *gorpc.Device) (err error)
 
 		server.users[username] = user
 
-		server.D("create new user %s", username)
+		server.I("create new user %s", username)
 	}
 
 	if _, ok := server.binders[device.String()]; !ok {
 
 		server.binders[device.String()] = user
 	}
+
+	server.I("bind user %s to %s -- success", username, device)
 
 	return nil
 }

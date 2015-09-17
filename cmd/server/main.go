@@ -34,7 +34,7 @@ func main() {
 
 	flag.Var(&proxies, "proxy", "set proxy ip")
 
-	var pprof = flag.String("pprof", "localhost:6000", "set the server ip address")
+	var pprof = flag.String("pprof", "localhost:6060", "set the server ip address")
 
 	flag.Parse()
 
@@ -58,9 +58,9 @@ func main() {
 		log.E("%s", http.ListenAndServe(*pprof, nil))
 	}()
 
-	// gslogger.NewFlags(gslogger.ERROR | gslogger.WARN | gslogger.DEBUG | gslogger.INFO)
+	gslogger.NewFlags(gslogger.ERROR | gslogger.WARN | gslogger.DEBUG | gslogger.INFO)
 
-	agentsystem := gsagent.New("im-test-server", server.NewIMServer(10), eventLoop, 5)
+	agentsystem := gsagent.New("im-test-server", server.NewIMServer(10), eventLoop, 5*time.Second)
 
 	for _, proxy := range proxies {
 		agentsystem.Connect("im-test-proxy"+proxy, proxy, 1024, 5*time.Second)

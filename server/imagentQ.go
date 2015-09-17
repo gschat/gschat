@@ -104,7 +104,14 @@ func (agentQ *_IMAgentQ) heartBeat(id uint32) {
 
 	// send received queue heartbeat if id  > recvid id
 
-	go agentQ.client.Notify(id)
+	go func() {
+		err := agentQ.client.Notify(id)
+
+		if err != nil {
+			agentQ.E("notify client error :%s", err)
+		}
+
+	}()
 }
 
 func (agentQ *_IMAgentQ) close() {

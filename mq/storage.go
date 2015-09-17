@@ -337,14 +337,17 @@ func (storage *_Storage) RunOnce(db *bolt.DB) error {
 
 	defer file.Close()
 
+	storage.D("loop ....")
+
 	for _, ringbuff := range storage.ringbuffers {
 
 		if ringbuff == nil {
 			continue
 		}
 
+		storage.D("flush .... ")
 		ringbuff.flush(file, storage.headersize)
-
+		storage.D("flush .... -- success")
 		var buff bytes.Buffer
 
 		err := WriteQMeta(&buff, ringbuff.Meta())
@@ -353,6 +356,7 @@ func (storage *_Storage) RunOnce(db *bolt.DB) error {
 			return err
 		}
 
+		storage.D("write meta .... ")
 		err = db.Update(func(tx *bolt.Tx) error {
 
 			bucket, err := tx.CreateBucketIfNotExists([]byte(MetaTable))
@@ -363,10 +367,14 @@ func (storage *_Storage) RunOnce(db *bolt.DB) error {
 			return bucket.Put([]byte(ringbuff.Name), buff.Bytes())
 		})
 
+		storage.D("write meta .... -- success")
+
 		if err != nil {
 			return err
 		}
 	}
+
+	storage.D("loop .... -- success")
 
 	return nil
 }

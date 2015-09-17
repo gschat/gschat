@@ -15,7 +15,11 @@ type _IMUser struct {
 
 func (server *_IMServer) newUser(name string) (*_IMUser, error) {
 
+	server.I("create user space :%s", name)
+
 	fifo, err := server.fsqueue.Open(name)
+
+	server.I("create user space :%s -- success", name)
 
 	if err != nil {
 		return nil, err

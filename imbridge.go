@@ -51,6 +51,8 @@ func (bridge *_Bridge) Login(username string, properties []*Property) ([]*Proper
 	bridge.Lock()
 	defer bridge.Unlock()
 
+	bridge.I("%s login with username %s", bridge.client.Device(), username)
+
 	auth, ok := bridge.proxy.getAuth(bridge.client.Device())
 
 	if !ok {
@@ -80,6 +82,8 @@ func (bridge *_Bridge) Login(username string, properties []*Property) ([]*Proper
 		return nil, gorpc.NewRemoteException()
 	}
 
+	bridge.I("bind server %s for %s ", bridge.proxy.serverName(imserver), username)
+
 	err := BindIManager(uint16(ServiceTypeIM), imserver).Bind(username, bridge.client.Device())
 
 	if err != nil {
@@ -87,13 +91,15 @@ func (bridge *_Bridge) Login(username string, properties []*Property) ([]*Proper
 		return nil, gorpc.NewRemoteException()
 	}
 
-	bridge.V("bind server %s for %s -- success", bridge.proxy.serverName(imserver), username)
+	bridge.I("bind server %s for %s -- success", bridge.proxy.serverName(imserver), username)
 
 	bridge.client.Bind(uint16(ServiceTypeIM), imserver)
 
 	bridge.username = username
 
 	bridge.imserver = imserver
+
+	bridge.I("%s login with username %s -- success", bridge.client.Device(), username)
 
 	return properties, nil
 }

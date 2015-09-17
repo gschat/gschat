@@ -57,9 +57,13 @@ func (mq *MQ) flushAll() {
 	mq.Lock()
 	defer mq.Unlock()
 
+	mq.I("update ................")
+
 	for _, storage := range mq.storages {
 		storage.RunOnce(mq.db)
 	}
+
+	mq.I("update ................ -- success")
 }
 
 func (mq *MQ) newStorageFileName() string {
