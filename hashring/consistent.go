@@ -117,5 +117,7 @@ func (ring *HashRing) Remove(key string) interface{} {
 		sort.Sort(ring.circle)
 	}
 
+	delete(ring.values, id)
+
 	return val
 }

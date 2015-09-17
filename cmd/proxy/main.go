@@ -18,7 +18,7 @@ var listen = flag.String("l", ":13516", "set gschat-proxy ip address")
 
 var tunnel = flag.String("t", ":15827", "set gschat-proxy tunnel listen ip address")
 
-var pprof = flag.String("l", "localhost:6060", "set the server ip address")
+var pprof = flag.String("pprof", "localhost:5000", "set the server ip address")
 
 func main() {
 

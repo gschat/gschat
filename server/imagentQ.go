@@ -37,23 +37,27 @@ func newAgentQ(name string, fifo mq.FIFO, context gsagent.Context) *_IMAgentQ {
 		client:    gschat.BindIMClient(uint16(gschat.ServiceTypeClient), context),
 	}
 
+	go agentQ.heartBeatLoop()
+
 	return agentQ
 }
 
 func (agentQ *_IMAgentQ) heartBeatLoop() {
 
+	tick := time.NewTicker(gsconfig.Seconds("gsim.heartbeat.timeout", 5))
+
+	defer tick.Stop()
+
 	// heartbeat
 
 	for agentQ.stream == nil {
-
-		tick := time.Tick(gsconfig.Seconds("gsim.heartbeat.timeout", 5))
 
 		agentQ.heartBeat(agentQ.fifo.MaxID())
 
 		select {
 		case <-agentQ.closeflag:
 			return
-		case <-tick:
+		case <-tick.C:
 			agentQ.heartBeat(agentQ.fifo.MaxID())
 		}
 	}
@@ -81,7 +85,7 @@ func (agentQ *_IMAgentQ) sendLoop(stream *mq.Stream) {
 				return
 			}
 
-			agentQ.D("[%s:%s] receive stream(%d), push mail(%d)", agentQ.name, agentQ.device, stream.Offset, msg.SQID)
+			agentQ.D("%p [%s:%s] receive stream(%d), push mail(%d)", agentQ, agentQ.name, agentQ.device, stream.Offset, msg.SQID)
 
 			err := agentQ.client.Push(msg)
 

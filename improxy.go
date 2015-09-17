@@ -80,7 +80,7 @@ func (proxy *_IMProxy) dobind(context gsproxy.Context, server gsproxy.Server, na
 	defer proxy.Unlock()
 
 	if _, ok := proxy.servers[server]; !ok {
-		proxy.W("server(%p) already unbound", server)
+		proxy.W("server(%p) already bound", server)
 		return
 	}
 
