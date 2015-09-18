@@ -21,7 +21,16 @@ type _Bridge struct {
 
 func (proxy *_IMProxy) createBridge(context gsproxy.Context, client gsproxy.Client) {
 
-	bridge := &_Bridge{
+	proxy.Lock()
+	defer proxy.Unlock()
+
+	bridge, ok := proxy.bridges[client.Device().String()]
+
+	if ok {
+		go bridge.close()
+	}
+
+	bridge = &_Bridge{
 		Log:    gslogger.Get("bridge"),
 		client: client,
 		proxy:  proxy,
@@ -38,6 +47,8 @@ func (proxy *_IMProxy) createBridge(context gsproxy.Context, client gsproxy.Clie
 			bridge.W("not found valid anps server for %s", client.Device().String())
 		}
 	}
+
+	proxy.bridges[client.Device().String()] = bridge
 }
 
 func (bridge *_Bridge) close() {
@@ -105,8 +116,14 @@ func (bridge *_Bridge) Login(username string, properties []*Property) ([]*Proper
 }
 
 func (bridge *_Bridge) unbind() error {
+
 	if bridge.imserver != nil {
-		return BindIManager(uint16(ServiceTypeIM), bridge.imserver).Unbind(bridge.username, bridge.client.Device())
+
+		err := BindIManager(uint16(ServiceTypeIM), bridge.imserver).Unbind(bridge.username, bridge.client.Device())
+
+		if err != nil {
+			bridge.E("unbind user %s from device %s error \n%s", bridge.username, bridge.client.Device())
+		}
 	}
 
 	return nil

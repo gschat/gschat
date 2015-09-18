@@ -109,6 +109,8 @@ func (server *_IMServer) Bind(username string, device *gorpc.Device) (err error)
 
 func (server *_IMServer) Unbind(username string, device *gorpc.Device) error {
 
+	server.D("unbind .....................")
+
 	server.Lock()
 	defer server.Unlock()
 
@@ -120,6 +122,8 @@ func (server *_IMServer) Unbind(username string, device *gorpc.Device) error {
 		client.close()
 		delete(server.agents, device.String())
 	}
+
+	server.D("unbind ..................... -- success")
 
 	return nil
 }

@@ -28,6 +28,7 @@ func NewIMProxy() gsproxy.Proxy {
 	return &_IMProxy{
 		Log:       gslogger.Get("improxy"),
 		servers:   make(map[gsproxy.Server]*NamedService),
+		bridges:   make(map[string]*_Bridge),
 		imservers: hashring.New(),
 		anps:      hashring.New(),
 		auth:      hashring.New(),
@@ -192,11 +193,14 @@ func (proxy *_IMProxy) AddClient(context gsproxy.Context, client gsproxy.Client)
 
 func (proxy *_IMProxy) RemoveClient(context gsproxy.Context, client gsproxy.Client) {
 
+	proxy.I("remove client :%s", client.Device())
+
 	proxy.Lock()
 	defer proxy.Unlock()
 
 	bridge, ok := proxy.bridges[client.Device().String()]
 	if !ok {
+		proxy.W("client :%s not found", client.Device())
 		return
 	}
 

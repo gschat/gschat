@@ -282,9 +282,6 @@ func (storage *_Storage) IsFull() bool {
 
 func (storage *_Storage) Open(meta *QMeta) FIFO {
 
-	storage.Lock()
-	defer storage.Unlock()
-
 	fifo := storage.openRingBuffer(meta, storage.cachedsize)
 
 	storage.ringbuffers[meta.ID] = fifo

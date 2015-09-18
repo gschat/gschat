@@ -44,6 +44,8 @@ func (server *_IMServer) AddAgent(context gsagent.Context) (gsagent.Agent, error
 
 	context.AddService(gschat.MakeIMServer(uint16(gschat.ServiceTypeIM), agent))
 
+	server.agents[context.ID().String()] = agent
+
 	return agent, nil
 }
 
