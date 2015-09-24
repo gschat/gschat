@@ -1,11 +1,12 @@
 package server
 
 import (
+	"bytes"
 	"sync"
 	"time"
 
 	"github.com/gschat/gschat"
-	"github.com/gschat/gschat/mq"
+	"github.com/gschat/tsdb"
 	"github.com/gsdocker/gsagent"
 	"github.com/gsdocker/gsconfig"
 	"github.com/gsdocker/gslogger"
@@ -20,21 +21,21 @@ type _IMAgentQ struct {
 	client       gschat.IMClient // agent
 	context      gsagent.Context //
 	closeflag    chan bool       // close flag
-	stream       *mq.Stream      // send stream
-	fifo         mq.FIFO         // message queue
+	dataset      tsdb.DataSet    // send stream
+	datasource   tsdb.DataSource // message queue
 	device       *gorpc.Device   // device
 }
 
-func newAgentQ(name string, fifo mq.FIFO, context gsagent.Context) *_IMAgentQ {
+func newAgentQ(name string, datasource tsdb.DataSource, context gsagent.Context) *_IMAgentQ {
 
 	agentQ := &_IMAgentQ{
-		Log:       gslogger.Get("im-agent-q"),
-		name:      name,
-		closeflag: make(chan bool),
-		context:   context,
-		fifo:      fifo,
-		device:    context.ID(),
-		client:    gschat.BindIMClient(uint16(gschat.ServiceTypeClient), context),
+		Log:        gslogger.Get("im-agent-q"),
+		name:       name,
+		closeflag:  make(chan bool),
+		context:    context,
+		datasource: datasource,
+		device:     context.ID(),
+		client:     gschat.BindIMClient(uint16(gschat.ServiceTypeClient), context),
 	}
 
 	go agentQ.heartBeatLoop()
@@ -50,51 +51,62 @@ func (agentQ *_IMAgentQ) heartBeatLoop() {
 
 	// heartbeat
 
-	for agentQ.stream == nil {
+	for agentQ.dataset == nil {
 
-		agentQ.heartBeat(agentQ.fifo.MaxID())
+		if version, ok := agentQ.datasource.CurrentVersion(agentQ.name); ok {
+			agentQ.heartBeat(uint32(version))
+		}
 
 		select {
 		case <-agentQ.closeflag:
 			return
 		case <-tick.C:
-			agentQ.heartBeat(agentQ.fifo.MaxID())
+			if version, ok := agentQ.datasource.CurrentVersion(agentQ.name); ok {
+				agentQ.heartBeat(uint32(version))
+			}
 		}
 	}
 }
 
-func (agentQ *_IMAgentQ) sendLoop(stream *mq.Stream) {
+func (agentQ *_IMAgentQ) sendLoop(dataset tsdb.DataSet) {
 
-	agentQ.D("user %s login with %s create receive stream(%d)", agentQ.name, agentQ.device, stream.Offset)
+	agentQ.D("user %s login with %s create receive stream(%d)", agentQ.name, agentQ.device, dataset.MiniVersion())
 
 	for {
 		select {
 		case <-agentQ.closeflag:
 
-			agentQ.D("user %s login with %s receive stream(%d) -- closed", agentQ.name, agentQ.device, stream.Offset)
+			agentQ.D("user %s login with %s receive stream(%d) -- closed", agentQ.name, agentQ.device, dataset.MiniVersion())
 
-			stream.Close()
+			dataset.Close()
 
 			return
-		case msg, ok := <-stream.Chan:
+		case dbValue, ok := <-dataset.Stream():
+
+			msg, err := gschat.ReadMail(bytes.NewBuffer(dbValue.Content))
+
+			if err != nil {
+				agentQ.D("[%s:%s] receive stream(%d), unmarshal mail -- failed\n%s", agentQ.name, agentQ.device, dataset.MiniVersion(), err)
+				continue
+			}
 
 			if !ok {
 
-				agentQ.D("user %s login with %s receive stream(%d) -- closed", agentQ.name, agentQ.device, stream.Offset)
+				agentQ.D("user %s login with %s receive stream(%d) -- closed", agentQ.name, agentQ.device, dataset.MiniVersion())
 
 				return
 			}
 
-			agentQ.D("%p [%s:%s] receive stream(%d), push mail(%d)", agentQ, agentQ.name, agentQ.device, stream.Offset, msg.SQID)
+			agentQ.D("%p [%s:%s] receive stream(%d), push mail(%d)", agentQ, agentQ.name, agentQ.device, dataset.MiniVersion(), msg.SQID)
 
-			err := agentQ.client.Push(msg)
+			err = agentQ.client.Push(msg)
 
 			if err != nil {
-				agentQ.D("[%s:%s] receive stream(%d), push mail(%d) -- failed\n%s", agentQ.name, agentQ.device, stream.Offset, msg.SQID, err)
+				agentQ.D("[%s:%s] receive stream(%d), push mail(%d) -- failed\n%s", agentQ.name, agentQ.device, dataset.MiniVersion(), msg.SQID, err)
 				continue
 			}
 
-			agentQ.D("[%s:%s] receive stream(%d), push mail(%d) -- success", agentQ.name, agentQ.device, stream.Offset, msg.SQID)
+			agentQ.D("[%s:%s] receive stream(%d), push mail(%d) -- success", agentQ.name, agentQ.device, dataset.MiniVersion(), msg.SQID)
 		}
 	}
 }
@@ -126,18 +138,33 @@ func (agentQ *_IMAgentQ) pull(id uint32) error {
 	agentQ.Lock()
 	defer agentQ.Unlock()
 
-	if agentQ.stream == nil {
+	if agentQ.dataset == nil {
 
-		agentQ.stream = agentQ.fifo.NewStream(id, gsconfig.Int("gsim.recvq.cached", 5))
+		var err error
 
-		go agentQ.sendLoop(agentQ.stream)
+		agentQ.dataset, err = agentQ.datasource.Query(agentQ.name, uint64(id))
 
-	} else if agentQ.stream.Offset > id {
+		if err != nil {
+			agentQ.E("execute tsdb query(%s:%d) error:\n%s", agentQ.name, id, err)
+			return err
+		}
 
-		agentQ.stream.Close()
+		go agentQ.sendLoop(agentQ.dataset)
 
-		agentQ.stream = agentQ.fifo.NewStream(id, gsconfig.Int("gsim.recvq.cached", 5))
-		go agentQ.sendLoop(agentQ.stream)
+	} else if agentQ.dataset.MiniVersion() > uint64(id) {
+
+		agentQ.dataset.Close()
+
+		var err error
+
+		agentQ.dataset, err = agentQ.datasource.Query(agentQ.name, uint64(id))
+
+		if err != nil {
+			agentQ.E("execute tsdb query(%s:%d) error:\n%s", agentQ.name, id, err)
+			return err
+		}
+
+		go agentQ.sendLoop(agentQ.dataset)
 	}
 
 	return nil

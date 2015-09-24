@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/gschat/gschat"
-	"github.com/gschat/gschat/mq"
+	"github.com/gschat/tsdb"
 	"github.com/gsdocker/gsagent"
 	"github.com/gsdocker/gsconfig"
 	"github.com/gsdocker/gserrors"
@@ -22,7 +22,7 @@ type _IMServer struct {
 	users        map[string]*_IMUser   // register users
 	binders      map[string]*_IMUser   // agent and user binder
 	agents       map[string]*_IMAgent  // agents
-	fsqueue      *mq.MQ                //
+	datasource   tsdb.DataSource       //
 }
 
 // NewIMServer create new im server
@@ -30,7 +30,7 @@ func NewIMServer(vnodes uint32) gsagent.System {
 
 	currentDir, _ := filepath.Abs("./")
 
-	fsqueue, err := mq.NewMQ(gsconfig.String("imserver.mq.dir", currentDir))
+	datasource, err := tsdb.Open(gsconfig.String("imserver.mq.dir", currentDir))
 
 	if err != nil {
 		gserrors.Panicf(err, "create new MQ error")
@@ -42,10 +42,10 @@ func NewIMServer(vnodes uint32) gsagent.System {
 			VNodes: vnodes,
 			Type:   gschat.ServiceTypeIM,
 		},
-		users:   make(map[string]*_IMUser),
-		binders: make(map[string]*_IMUser),
-		agents:  make(map[string]*_IMAgent),
-		fsqueue: fsqueue,
+		users:      make(map[string]*_IMUser),
+		binders:    make(map[string]*_IMUser),
+		agents:     make(map[string]*_IMAgent),
+		datasource: datasource,
 	}
 }
 

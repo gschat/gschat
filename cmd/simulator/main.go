@@ -93,7 +93,9 @@ func (mock *_MockClient) Connected(pipeline gorpc.Pipeline) {
 
 			mail.Content = "hello world"
 
+			mock.I("put mail")
 			_, err = im.Put(mail)
+			mock.I("put mail -- success")
 
 			if err != nil {
 				mock.E("send message error :%s", err)
