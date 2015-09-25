@@ -7,14 +7,23 @@ using gslang.Flag;
 @Lang(Name:"golang",Package:"github.com/gschat/gschat")
 
 table Mail {
-    uint32      SQID        ; // The IM data's server timestamp
-    uint64      TS          ; // IM data timestamp
-    string      Sender      ; // IM data sender
-    string      Receiver    ; // IM data receiver
-    MailType    Type        ; // IM data type {@link DataType}
-    string      Content     ; // IM data message
+    uint32          SQID        ; // The IM data's server timestamp
+    uint64          TS          ; // IM data timestamp
+    string          Sender      ; // IM data sender
+    string          Receiver    ; // IM data receiver
+    MailType        Type        ; // IM data type {@link DataType}
+    string          Content     ; // IM data message
+    Attachment[]    Attachments ; // IM attachment list
 }
 
+table Attachment {
+    AttachmentType  Type        ; // attachment type
+    byte[]          Content     ; // attachment content
+}
+
+enum AttachmentType {
+    Text,Image,Video,Audio,GPS,Customer
+}
 
 enum MailType {
     Single(0),Multi(1),System(2)
