@@ -2,11 +2,8 @@ package com.gschat;
 
 
 using gslang.Exception;
-using gslang.Lang;
 using com.gschat.ServiceType;
 using com.gsrpc.Device;
-
-@Lang(Name:"golang",Package:"github.com/gschat/gschat")
 
 table NamedService {
     string          Name;

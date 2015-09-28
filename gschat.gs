@@ -1,10 +1,12 @@
 package com.gschat;
 
 using gslang.Exception;
-using gslang.Lang;
+using gslang.Package;
 using gslang.Flag;
 
-@Lang(Name:"golang",Package:"github.com/gschat/gschat")
+@Package(Lang:"golang",Name:"com.gschat",Redirect:"github.com/gschat/gschat")
+
+@Package(Lang:"objc",Name:"com.gschat",Redirect:"GSChat")
 
 table Mail {
     uint32          SQID        ; // The IM data's server timestamp
@@ -40,7 +42,7 @@ table UserAuthFailed {}
 
 
 enum ServiceType{
-    Unknown,IM,ANPS,Auth,Client
+    Unknown,IM,APNS,Auth,Client
 }
 
 table Property{

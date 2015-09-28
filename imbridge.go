@@ -42,7 +42,7 @@ func (proxy *_IMProxy) createBridge(context gsproxy.Context, client gsproxy.Clie
 		anps, ok := bridge.proxy.getANPS(client.Device().String())
 
 		if ok {
-			bridge.client.Bind(uint16(ServiceTypeANPS), anps)
+			bridge.client.Bind(uint16(ServiceTypeAPNS), anps)
 		} else {
 			bridge.W("not found valid anps server for %s", client.Device().String())
 		}
