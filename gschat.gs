@@ -16,6 +16,7 @@ table Mail {
     MailType        Type        ; // IM data type {@link DataType}
     string          Content     ; // IM data message
     Attachment[]    Attachments ; // IM attachment list
+    byte[]          Extension   ; //
 }
 
 table Attachment {
@@ -24,7 +25,39 @@ table Attachment {
 }
 
 enum AttachmentType {
-    Text,Image,Video,Audio,GPS,Customer
+    Text,Image,Video,Audio,GPS,CMD,Customer
+}
+
+
+table AttachmentText {
+    string          Text        ; // text content
+}
+
+table AttachmentGPS {
+    float64         Longitude   ;
+    float64         Latitude    ;
+    string          Address     ;
+}
+
+table AttachmentImage {
+    string          Key         ;
+    string          Name        ;
+}
+
+table AttachmentVideo {
+    string          Key         ;
+    string          Name        ;
+    int16           Duration    ;
+}
+
+table AttachmentAudio {
+    string          Key         ;
+    string          Name        ;
+    int16           Duration    ;
+}
+
+table AttachmentCMD {
+    string          Command     ;
 }
 
 enum MailType {
@@ -67,6 +100,11 @@ contract IMAuth{
     Property[] Login(string username,Property[] properties)  throws(UserNotFound,UserAuthFailed);
 
     void Logoff(Property[] properties);
+}
+
+contract IMAPNS {
+    void Register(byte[] pushToken);
+    void Unregister();
 }
 
 contract IMClient{
