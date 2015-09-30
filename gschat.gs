@@ -75,7 +75,7 @@ table UserAuthFailed {}
 
 
 enum ServiceType{
-    Unknown,IM,APNS,Auth,Client
+    Unknown,IM,Push,Auth,Client,Status
 }
 
 table Property{
@@ -102,7 +102,7 @@ contract IMAuth{
     void Logoff(Property[] properties);
 }
 
-contract IMAPNS {
+contract IMPush {
     void Register(byte[] pushToken);
     void Unregister();
 }

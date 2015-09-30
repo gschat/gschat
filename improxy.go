@@ -90,7 +90,7 @@ func (proxy *_IMProxy) dobind(context gsproxy.Context, server gsproxy.Server, na
 	switch namedService.Type {
 	case ServiceTypeIM:
 		ring = proxy.imservers
-	case ServiceTypeAPNS:
+	case ServiceTypePush:
 		ring = proxy.anps
 	case ServiceTypeAuth:
 		ring = proxy.auth
@@ -125,7 +125,7 @@ func (proxy *_IMProxy) RemoveServer(context gsproxy.Context, server gsproxy.Serv
 	switch namedService.Type {
 	case ServiceTypeIM:
 		ring = proxy.imservers
-	case ServiceTypeAPNS:
+	case ServiceTypePush:
 		ring = proxy.anps
 	case ServiceTypeAuth:
 		ring = proxy.auth

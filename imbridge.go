@@ -19,7 +19,7 @@ type _Bridge struct {
 	username     string         // login username
 }
 
-func (proxy *_IMProxy) createBridge(context gsproxy.Context, client gsproxy.Client) {
+func (proxy *_IMProxy) createBridge(context gsproxy.Context, client gsproxy.Client) (err error) {
 
 	proxy.Lock()
 	defer proxy.Unlock()
@@ -38,17 +38,9 @@ func (proxy *_IMProxy) createBridge(context gsproxy.Context, client gsproxy.Clie
 
 	client.AddService(MakeIMAuth(uint16(ServiceTypeAuth), bridge))
 
-	if bridge.client.Device().OS == gorpc.OSTypeIOS {
-		anps, ok := bridge.proxy.getANPS(client.Device().String())
-
-		if ok {
-			bridge.client.Bind(uint16(ServiceTypeAPNS), anps)
-		} else {
-			bridge.W("not found valid anps server for %s", client.Device().String())
-		}
-	}
-
 	proxy.bridges[client.Device().String()] = bridge
+
+	return
 }
 
 func (bridge *_Bridge) close() {
