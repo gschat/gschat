@@ -9,6 +9,7 @@ import (
 	_ "net/http/pprof"
 
 	"github.com/gschat/gschat"
+	"github.com/gschat/gschat/eventQ"
 	"github.com/gsdocker/gslogger"
 	"github.com/gsdocker/gsproxy"
 	"github.com/gsrpc/gorpc"
@@ -19,6 +20,8 @@ var listen = flag.String("l", ":13516", "set gschat-proxy ip address")
 var tunnel = flag.String("t", ":15827", "set gschat-proxy tunnel listen ip address")
 
 var pprof = flag.String("pprof", "localhost:5000", "set the server ip address")
+
+var qconfig = flag.String("Q", "amqp://user1:www.gridy.com@10.0.0.103:5672", "eventQ config")
 
 func main() {
 
@@ -46,9 +49,13 @@ func main() {
 
 	gslogger.NewFlags(gslogger.ERROR | gslogger.WARN | gslogger.DEBUG | gslogger.INFO)
 
-	var err error
+	Q, err := eventQ.New(*qconfig)
 
-	proxy = gsproxy.BuildProxy(gschat.NewIMProxy()).AddrB(*tunnel).AddrF(*listen).Build("im-test-proxy", eventLoop)
+	if err != nil {
+		panic(err)
+	}
+
+	proxy = gsproxy.BuildProxy(gschat.NewIMProxy(Q)).AddrB(*tunnel).AddrF(*listen).Build("im-test-proxy", eventLoop)
 
 	if err != nil {
 		panic(err)

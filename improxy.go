@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/gschat/gschat/eventQ"
 	"github.com/gschat/gschat/hashring"
 	"github.com/gsdocker/gsconfig"
 	"github.com/gsdocker/gslogger"
@@ -21,10 +22,11 @@ type _IMProxy struct {
 	anps         *hashring.HashRing               // ios push server
 	auth         *hashring.HashRing               // ios push server
 	rejectAll    bool                             // set the default auth behavor if no ath server found
+	Q            eventQ.Q                         // eventQ
 }
 
 // NewIMProxy create new im proxy
-func NewIMProxy() gsproxy.Proxy {
+func NewIMProxy(Q eventQ.Q) gsproxy.Proxy {
 	return &_IMProxy{
 		Log:       gslogger.Get("improxy"),
 		servers:   make(map[gsproxy.Server]*NamedService),
@@ -33,6 +35,7 @@ func NewIMProxy() gsproxy.Proxy {
 		anps:      hashring.New(),
 		auth:      hashring.New(),
 		rejectAll: gsconfig.Bool("gschat.auth.default.rejectall", false),
+		Q:         Q,
 	}
 }
 

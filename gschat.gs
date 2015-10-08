@@ -9,6 +9,7 @@ using gslang.Flag;
 @Package(Lang:"objc",Name:"com.gschat",Redirect:"GSChat")
 
 table Mail {
+    string          MailID      ; // IM data uuid
     uint32          SQID        ; // The IM data's server timestamp
     uint64          TS          ; // IM data timestamp
     string          Sender      ; // IM data sender

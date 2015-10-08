@@ -17,6 +17,7 @@ type _Bridge struct {
 	proxy        *_IMProxy      // proxy belongs to
 	imserver     gsproxy.Server // server
 	username     string         // login username
+	token        []byte         // token string
 }
 
 func (proxy *_IMProxy) createBridge(context gsproxy.Context, client gsproxy.Client) (err error) {
@@ -37,8 +38,11 @@ func (proxy *_IMProxy) createBridge(context gsproxy.Context, client gsproxy.Clie
 	}
 
 	client.AddService(MakeIMAuth(uint16(ServiceTypeAuth), bridge))
+	client.AddService(MakeIMPush(uint16(ServiceTypePush), bridge))
 
 	proxy.bridges[client.Device().String()] = bridge
+
+	proxy.Q.DeviceOnline(client.Device())
 
 	return
 }
@@ -102,6 +106,8 @@ func (bridge *_Bridge) Login(username string, properties []*Property) ([]*Proper
 
 	bridge.imserver = imserver
 
+	bridge.proxy.Q.UserOnline(username, bridge.client.Device())
+
 	bridge.I("%s login with username %s -- success", bridge.client.Device(), username)
 
 	return properties, nil
@@ -117,6 +123,28 @@ func (bridge *_Bridge) unbind() error {
 			bridge.E("unbind user %s from device %s error \n%s", bridge.username, bridge.client.Device())
 		}
 	}
+
+	if bridge.username != "" {
+		bridge.proxy.Q.UserOffline(bridge.username, bridge.client.Device())
+	} else {
+		bridge.proxy.Q.DeviceOffline(bridge.client.Device())
+	}
+
+	return nil
+}
+
+func (bridge *_Bridge) Register(pushToken []byte) error {
+
+	bridge.proxy.Q.PushBind(bridge.client.Device(), pushToken)
+
+	bridge.token = pushToken
+
+	return nil
+}
+
+func (bridge *_Bridge) Unregister() error {
+
+	bridge.proxy.Q.PushUnbind(bridge.client.Device(), bridge.token)
 
 	return nil
 }

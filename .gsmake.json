@@ -9,20 +9,20 @@
         {"name" : "github.com/gsrpc/gorpc","version":"release/v2.0"},
         {"name" : "github.com/gsdocker/gsagent","version":"release/v1.0"},
 	    {"name" : "github.com/gsdocker/gsproxy","version":"release/v2.0"},
-        {"name" : "github.com/gschat/tsdb","domain":"golang|gslang","version":"release/v1.0"}
+        {"name" : "github.com/gschat/tsdb","domain":"golang|gslang","version":"release/v1.0"},
+        {"name" : "github.com/streadway/amqp","domain":"golang","version":"master"}
     ],
 
     "properties":{
         "gsrpc":{
-            "golang":["github.com/gsrpc/gsrpc","./gschat.gs","./service.gs","github.com/gschat/tsdb"]
+            "golang":["github.com/gsrpc/gsrpc","./gschat.gs","./eventQ/eventQ.gs","./service.gs","github.com/gschat/tsdb"]
         },
 
         "gsmake.golang.test" :[
-           {"dir":"./","flags":"-bench . -cpu 4 "}
+           {"dir":"./eventQ","flags":"-bench . -cpu 4 "}
        ],
 
        "gsmake.golang.binary" :{
-             "allinone" : "cmd/allinone",
              "simulator" : "cmd/simulator",
              "gschat-proxy" : "cmd/proxy",
              "gschat-server" : "cmd/server"
