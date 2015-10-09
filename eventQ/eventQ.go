@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 
 	"github.com/gsdocker/gsconfig"
-	"github.com/gsdocker/gserrors"
 	"github.com/gsdocker/gslogger"
 	"github.com/gsrpc/gorpc"
 	"github.com/streadway/amqp"
@@ -36,36 +35,36 @@ func New(raddr string) (Q, error) {
 		channelName: gsconfig.String("eventQ.clientStatus.Q", "clientStatusChangedQueue"),
 	}
 
-	conn, err := amqp.Dial(raddr)
-
-	if err != nil {
-		return nil, gserrors.Newf(err, "dial amq server[%s] error", raddr)
-	}
-
-	service.conn = conn
-
-	channel, err := conn.Channel()
-
-	if err != nil {
-		return nil, gserrors.Newf(err, "get amq server[%s] channel error", raddr)
-	}
-
-	q, err := channel.QueueDeclare(
-		service.channelName,
-		false, // durable
-		false, // delete when unused
-		false, // exclusive
-		false, // no-wait
-		nil,   // arguments
-	)
-
-	service.routeKey = q.Name
-
-	if err != nil {
-		return nil, gserrors.Newf(err, "failed to declare an exchange on amq server[%s] error", raddr)
-	}
-
-	service.channel = channel
+	// conn, err := amqp.Dial(raddr)
+	//
+	// if err != nil {
+	// 	return nil, gserrors.Newf(err, "dial amq server[%s] error", raddr)
+	// }
+	//
+	// service.conn = conn
+	//
+	// channel, err := conn.Channel()
+	//
+	// if err != nil {
+	// 	return nil, gserrors.Newf(err, "get amq server[%s] channel error", raddr)
+	// }
+	//
+	// q, err := channel.QueueDeclare(
+	// 	service.channelName,
+	// 	false, // durable
+	// 	false, // delete when unused
+	// 	false, // exclusive
+	// 	false, // no-wait
+	// 	nil,   // arguments
+	// )
+	//
+	// service.routeKey = q.Name
+	//
+	// if err != nil {
+	// 	return nil, gserrors.Newf(err, "failed to declare an exchange on amq server[%s] error", raddr)
+	// }
+	//
+	// service.channel = channel
 
 	return service, nil
 }
@@ -93,20 +92,20 @@ func (service *_Service) DeviceOnline(device *gorpc.Device) {
 
 func (service *_Service) send(content []byte) {
 
-	err := service.channel.Publish(
-		"",               // exchange
-		service.routeKey, // routing key
-		false,            // mandatory
-		false,            // immediate
-		amqp.Publishing{
-			ContentType: "text/plain",
-			Body:        []byte(content),
-		})
-
-	if err != nil {
-		service.E("send message to amq error\n%s", err)
-		return
-	}
+	// err := service.channel.Publish(
+	// 	"",               // exchange
+	// 	service.routeKey, // routing key
+	// 	false,            // mandatory
+	// 	false,            // immediate
+	// 	amqp.Publishing{
+	// 		ContentType: "text/plain",
+	// 		Body:        []byte(content),
+	// 	})
+	//
+	// if err != nil {
+	// 	service.E("send message to amq error\n%s", err)
+	// 	return
+	// }
 }
 
 func (service *_Service) DeviceOffline(device *gorpc.Device) {
