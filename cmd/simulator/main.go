@@ -57,53 +57,53 @@ func (mock *_MockClient) Notify(seqid uint32) error {
 }
 
 func (mock *_MockClient) Connected(pipeline gorpc.Pipeline) {
-	pipeline.AddService(gschat.MakeIMClient(uint16(gschat.ServiceTypeClient), mock))
-
-	auth := gschat.BindIMAuth(uint16(gschat.ServiceTypeAuth), pipeline)
-
-	_, err := auth.Login(mock.name, nil)
-
-	if err != nil {
-		mock.E("login(%s) error :%s", mock.name, err)
-		pipeline.Close()
-		return
-	}
-
-	im := gschat.BindIMServer(uint16(gschat.ServiceTypeIM), pipeline)
-
-	mock.imserver = im
-
-	go func() {
-
-		wheel := pipeline.EventLoop().TimeWheel()
-
-		ticker := wheel.NewTicker(5 * time.Second)
-
-		defer ticker.Stop()
-
-		for _ = range ticker.C {
-
-			mail := gschat.NewMail()
-
-			mail.Sender = mock.name
-
-			mail.Receiver = mock.name
-
-			mail.Type = gschat.MailTypeSingle
-
-			mail.Content = "hello world"
-
-			mock.I("put mail")
-			_, err = im.Put(mail)
-			mock.I("put mail -- success")
-
-			if err != nil {
-				mock.E("send message error :%s", err)
-				return
-			}
-
-		}
-	}()
+	// pipeline.AddService(gschat.MakeIMClient(uint16(gschat.ServiceTypeClient), mock))
+	//
+	// auth := gschat.BindIMAuth(uint16(gschat.ServiceTypeAuth), pipeline)
+	//
+	// _, err := auth.Login(mock.name, nil)
+	//
+	// if err != nil {
+	// 	mock.E("login(%s) error :%s", mock.name, err)
+	// 	pipeline.Close()
+	// 	return
+	// }
+	//
+	// im := gschat.BindIMServer(uint16(gschat.ServiceTypeIM), pipeline)
+	//
+	// mock.imserver = im
+	//
+	// go func() {
+	//
+	// 	wheel := pipeline.EventLoop().TimeWheel()
+	//
+	// 	ticker := wheel.NewTicker(5 * time.Second)
+	//
+	// 	defer ticker.Stop()
+	//
+	// 	for _ = range ticker.C {
+	//
+	// 		mail := gschat.NewMail()
+	//
+	// 		mail.Sender = mock.name
+	//
+	// 		mail.Receiver = mock.name
+	//
+	// 		mail.Type = gschat.MailTypeSingle
+	//
+	// 		mail.Content = "hello world"
+	//
+	// 		mock.I("put mail")
+	// 		_, err = im.Put(mail)
+	// 		mock.I("put mail -- success")
+	//
+	// 		if err != nil {
+	// 			mock.E("send message error :%s", err)
+	// 			return
+	// 		}
+	//
+	// 	}
+	// }()
 }
 
 func (mock *_MockClient) Disconnected(pipeline gorpc.Pipeline) {
