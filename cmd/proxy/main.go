@@ -19,7 +19,7 @@ var listen = flag.String("l", ":13516", "set gschat-proxy ip address")
 
 var tunnel = flag.String("t", ":15827", "set gschat-proxy tunnel listen ip address")
 
-var pprof = flag.String("pprof", "localhost:5000", "set the server ip address")
+var pprof = flag.String("pprof", ":5000", "set the server ip address")
 
 var qconfig = flag.String("Q", "amqp://user1:www.gridy.com@10.0.0.103:5672", "eventQ config")
 
@@ -55,7 +55,7 @@ func main() {
 		panic(err)
 	}
 
-	proxy = gsproxy.BuildProxy(gschat.NewIMProxy(Q)).AddrB(*tunnel).AddrF(*listen).Build("im-test-proxy", eventLoop)
+	proxy = gsproxy.BuildProxy(gschat.NewIMProxy(Q)).AddrB(*tunnel).AddrF(*listen).Heartbeat(60*time.Second).Build("im-test-proxy", eventLoop)
 
 	if err != nil {
 		panic(err)
