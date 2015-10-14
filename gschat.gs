@@ -74,6 +74,11 @@ table UserNotFound {}
 @Exception
 table UserAuthFailed {}
 
+@Exception
+table ResourceNotFound{}
+
+@Exception
+table UnexpectSQID{}
 
 enum ServiceType{
     Unknown,IM,Push,Auth,Client,Status
@@ -87,10 +92,15 @@ table Property{
 
 contract IMServer{
     /**
+     * get send SQID
+     */
+    uint32 Prepare();
+    /**
      * put message data into receiver message queue
      * @return the data's service timestamp
      */
-    uint64 Put(Mail mail) throws(UserNotFound);
+    uint64 Put(Mail mail) throws(UserNotFound,UnexpectSQID);
+
     /**
      *  create new receive stream with newest message's ts of client
      */
