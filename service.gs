@@ -50,7 +50,7 @@ contract DHKeyResolver {
 }
 
 enum BlockType {
-    Discard,Slience
+    Discard,Silence
 }
 
 table BlockRule {
