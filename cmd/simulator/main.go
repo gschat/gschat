@@ -141,7 +141,7 @@ func createSimulator(name string) {
 		).Handler(
 			"heatbeat-client",
 			func() gorpc.Handler {
-				return handler.NewHeartbeatHandler(5 * time.Second)
+				return handler.NewHeartbeatHandler(60 * time.Second)
 			},
 		),
 	).EvtNewPipeline(

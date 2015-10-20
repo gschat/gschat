@@ -65,6 +65,10 @@ func (agent *_IMAgent) ID() *gorpc.Device {
 	return agent.device
 }
 
+func (server *_IMAgent) Prepare() (uint32, error) {
+	return 0, nil
+}
+
 func (agent *_IMAgent) Put(mail *gschat.Mail) (retval uint64, err error) {
 
 	user, ok := agent.server.user(mail.Receiver)
