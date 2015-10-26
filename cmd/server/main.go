@@ -62,6 +62,10 @@ func main() {
 
 	agentsystem := gsagent.New("im-test-server", server.NewIMServer(10), eventLoop, 5*time.Second)
 
+	if proxies == nil {
+		proxies = []string{"localhost:15827"}
+	}
+
 	for _, proxy := range proxies {
 		agentsystem.Connect("im-test-proxy"+proxy, proxy, 1024, 5*time.Second)
 	}
