@@ -1,4 +1,4 @@
-package server
+package is
 
 import (
 	"github.com/gschat/gschat"
@@ -65,7 +65,7 @@ func (agent *_IMAgent) ID() *gorpc.Device {
 	return agent.device
 }
 
-func (server *_IMAgent) Prepare() (uint32, error) {
+func (agent *_IMAgent) Prepare() (uint32, error) {
 	return 0, nil
 }
 

@@ -1,10 +1,11 @@
-package gschat
+package gw
 
 import (
 	"sync"
 
 	"github.com/gsrpc/gorpc"
 
+	"github.com/gschat/gschat"
 	"github.com/gsdocker/gslogger"
 	"github.com/gsdocker/gsproxy"
 )
@@ -37,8 +38,8 @@ func (proxy *_IMProxy) createBridge(context gsproxy.Context, client gsproxy.Clie
 		proxy:  proxy,
 	}
 
-	client.AddService(MakeIMAuth(uint16(ServiceTypeAuth), bridge))
-	client.AddService(MakeIMPush(uint16(ServiceTypePush), bridge))
+	client.AddService(gschat.MakeIMAuth(uint16(gschat.ServiceTypeAuth), bridge))
+	client.AddService(gschat.MakeIMPush(uint16(gschat.ServiceTypePush), bridge))
 
 	proxy.bridges[client.Device().String()] = bridge
 
@@ -54,7 +55,7 @@ func (bridge *_Bridge) close() {
 	bridge.unbind()
 }
 
-func (bridge *_Bridge) Login(username string, properties []*Property) ([]*Property, error) {
+func (bridge *_Bridge) Login(username string, properties []*gschat.Property) ([]*gschat.Property, error) {
 	bridge.Lock()
 	defer bridge.Unlock()
 
@@ -66,7 +67,7 @@ func (bridge *_Bridge) Login(username string, properties []*Property) ([]*Proper
 		// reject all income login request
 		if bridge.proxy.rejectAll {
 
-			return nil, NewUserNotFound()
+			return nil, gschat.NewUserNotFound()
 		}
 
 		properties = nil
@@ -75,7 +76,7 @@ func (bridge *_Bridge) Login(username string, properties []*Property) ([]*Proper
 
 		var err error
 
-		properties, err = BindIMAuth(0, auth).Login(username, properties)
+		properties, err = gschat.BindIMAuth(0, auth).Login(username, properties)
 
 		if err != nil {
 			return nil, err
@@ -91,7 +92,7 @@ func (bridge *_Bridge) Login(username string, properties []*Property) ([]*Proper
 
 	bridge.I("bind server %s for %s ", bridge.proxy.serverName(imserver), username)
 
-	err := BindIManager(uint16(ServiceTypeIM), imserver).Bind(username, bridge.client.Device())
+	err := gschat.BindIManager(uint16(gschat.ServiceTypeIM), imserver).Bind(username, bridge.client.Device())
 
 	if err != nil {
 		bridge.E("%s bind im server %s error\n%s", username, bridge.proxy.serverName(imserver), err)
@@ -100,7 +101,7 @@ func (bridge *_Bridge) Login(username string, properties []*Property) ([]*Proper
 
 	bridge.I("bind server %s for %s -- success", bridge.proxy.serverName(imserver), username)
 
-	bridge.client.Bind(uint16(ServiceTypeIM), imserver)
+	bridge.client.Bind(uint16(gschat.ServiceTypeIM), imserver)
 
 	bridge.username = username
 
@@ -117,7 +118,7 @@ func (bridge *_Bridge) unbind() error {
 
 	if bridge.imserver != nil {
 
-		err := BindIManager(uint16(ServiceTypeIM), bridge.imserver).Unbind(bridge.username, bridge.client.Device())
+		err := gschat.BindIManager(uint16(gschat.ServiceTypeIM), bridge.imserver).Unbind(bridge.username, bridge.client.Device())
 
 		if err != nil {
 			bridge.E("unbind user %s from device %s error \n%s", bridge.username, bridge.client.Device())
@@ -149,7 +150,7 @@ func (bridge *_Bridge) Unregister() error {
 	return nil
 }
 
-func (bridge *_Bridge) Logoff(property []*Property) error {
+func (bridge *_Bridge) Logoff(property []*gschat.Property) error {
 
 	bridge.Lock()
 	defer bridge.Unlock()
@@ -175,10 +176,10 @@ func (bridge *_Bridge) Logoff(property []*Property) error {
 	}
 
 	// append username property
-	property = append(property, &Property{Key: "username", Value: bridge.username})
+	property = append(property, &gschat.Property{Key: "username", Value: bridge.username})
 
 	// call real auth service
-	err = BindIMAuth(0, auth).Logoff(property)
+	err = gschat.BindIMAuth(0, auth).Logoff(property)
 
 	if err != nil {
 

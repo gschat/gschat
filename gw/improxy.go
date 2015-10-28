@@ -1,9 +1,10 @@
-package gschat
+package gw
 
 import (
 	"fmt"
 	"sync"
 
+	"github.com/gschat/gschat"
 	"github.com/gschat/gschat/eventQ"
 	"github.com/gschat/gschat/hashring"
 	"github.com/gsdocker/gsconfig"
@@ -13,23 +14,23 @@ import (
 )
 
 type _IMProxy struct {
-	sync.RWMutex                                  // mutex
-	gslogger.Log                                  // Mixin Log APIs
-	name         string                           // proxy name
-	servers      map[gsproxy.Server]*NamedService // register servers
-	bridges      map[string]*_Bridge              // bridges
-	imservers    *hashring.HashRing               // imserver hash ring
-	anps         *hashring.HashRing               // ios push server
-	auth         *hashring.HashRing               // ios push server
-	rejectAll    bool                             // set the default auth behavor if no ath server found
-	Q            eventQ.Q                         // eventQ
+	sync.RWMutex                                         // mutex
+	gslogger.Log                                         // Mixin Log APIs
+	name         string                                  // proxy name
+	servers      map[gsproxy.Server]*gschat.NamedService // register servers
+	bridges      map[string]*_Bridge                     // bridges
+	imservers    *hashring.HashRing                      // imserver hash ring
+	anps         *hashring.HashRing                      // ios push server
+	auth         *hashring.HashRing                      // ios push server
+	rejectAll    bool                                    // set the default auth behavor if no ath server found
+	Q            eventQ.Q                                // eventQ
 }
 
 // NewIMProxy create new im proxy
 func NewIMProxy(Q eventQ.Q) gsproxy.Proxy {
 	return &_IMProxy{
 		Log:       gslogger.Get("improxy"),
-		servers:   make(map[gsproxy.Server]*NamedService),
+		servers:   make(map[gsproxy.Server]*gschat.NamedService),
 		bridges:   make(map[string]*_Bridge),
 		imservers: hashring.New(),
 		anps:      hashring.New(),
@@ -65,7 +66,7 @@ func (proxy *_IMProxy) AddServer(context gsproxy.Context, server gsproxy.Server)
 func (proxy *_IMProxy) bindServer(context gsproxy.Context, server gsproxy.Server) {
 	proxy.D("try bind server [%p] ...", server)
 
-	service := BindService(uint16(ServiceTypeUnknown), server)
+	service := gschat.BindService(uint16(gschat.ServiceTypeUnknown), server)
 
 	namedService, err := service.Name()
 
@@ -79,7 +80,7 @@ func (proxy *_IMProxy) bindServer(context gsproxy.Context, server gsproxy.Server
 
 }
 
-func (proxy *_IMProxy) dobind(context gsproxy.Context, server gsproxy.Server, namedService *NamedService) {
+func (proxy *_IMProxy) dobind(context gsproxy.Context, server gsproxy.Server, namedService *gschat.NamedService) {
 	proxy.Lock()
 	defer proxy.Unlock()
 
@@ -91,11 +92,11 @@ func (proxy *_IMProxy) dobind(context gsproxy.Context, server gsproxy.Server, na
 	var ring *hashring.HashRing
 
 	switch namedService.Type {
-	case ServiceTypeIM:
+	case gschat.ServiceTypeIM:
 		ring = proxy.imservers
-	case ServiceTypePush:
+	case gschat.ServiceTypePush:
 		ring = proxy.anps
-	case ServiceTypeAuth:
+	case gschat.ServiceTypeAuth:
 		ring = proxy.auth
 	default:
 		proxy.E("server(%p) provide unknown service type :%s", server, namedService.Type)
@@ -126,11 +127,11 @@ func (proxy *_IMProxy) RemoveServer(context gsproxy.Context, server gsproxy.Serv
 	var ring *hashring.HashRing
 
 	switch namedService.Type {
-	case ServiceTypeIM:
+	case gschat.ServiceTypeIM:
 		ring = proxy.imservers
-	case ServiceTypePush:
+	case gschat.ServiceTypePush:
 		ring = proxy.anps
-	case ServiceTypeAuth:
+	case gschat.ServiceTypeAuth:
 		ring = proxy.auth
 	default:
 		proxy.E("server(%p) provide unknown service type :%s", server, namedService.Type)

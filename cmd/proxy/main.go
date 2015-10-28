@@ -8,8 +8,8 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 
-	"github.com/gschat/gschat"
 	"github.com/gschat/gschat/eventQ"
+	"github.com/gschat/gschat/gw"
 	"github.com/gsdocker/gslogger"
 	"github.com/gsdocker/gsproxy"
 	"github.com/gsrpc/gorpc"
@@ -55,7 +55,7 @@ func main() {
 		panic(err)
 	}
 
-	proxy = gsproxy.BuildProxy(gschat.NewIMProxy(Q)).AddrB(*tunnel).AddrF(*listen).Heartbeat(60*time.Second).Build("im-test-proxy", eventLoop)
+	proxy = gsproxy.BuildProxy(gw.NewIMProxy(Q)).AddrB(*tunnel).AddrF(*listen).Heartbeat(60*time.Second).Build("im-test-proxy", eventLoop)
 
 	if err != nil {
 		panic(err)

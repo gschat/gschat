@@ -9,7 +9,7 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 
-	"github.com/gschat/gschat/server"
+	"github.com/gschat/gschat/is"
 	"github.com/gsdocker/gsagent"
 	"github.com/gsdocker/gslogger"
 	"github.com/gsrpc/gorpc"
@@ -60,7 +60,7 @@ func main() {
 
 	gslogger.NewFlags(gslogger.ERROR | gslogger.WARN | gslogger.DEBUG | gslogger.INFO)
 
-	agentsystem := gsagent.New("im-test-server", server.NewIMServer(10), eventLoop, 5*time.Second)
+	agentsystem := gsagent.New("im-test-server", is.NewIMServer(10), eventLoop, 5*time.Second)
 
 	if proxies == nil {
 		proxies = []string{"localhost:15827"}

@@ -3,6 +3,7 @@ package com.gschat;
 using gslang.Exception;
 using gslang.Package;
 using gslang.Flag;
+using com.gsrpc.Device;
 
 @Package(Lang:"golang",Name:"com.gschat",Redirect:"github.com/gschat/gschat")
 
@@ -81,7 +82,7 @@ table ResourceNotFound{}
 table UnexpectSQID{}
 
 enum ServiceType{
-    Unknown,IM,Push,Auth,Client,Status
+    Unknown,IM,Push,Auth,Client
 }
 
 table Property{
@@ -89,8 +90,7 @@ table Property{
     string Value;
 }
 
-
-contract IMServer{
+contract IM{
     /**
      * get send SQID
      */
@@ -102,9 +102,9 @@ contract IMServer{
     uint64 Put(Mail mail) throws(UserNotFound,UnexpectSQID);
 
     /**
-     *  create new receive stream with newest message's ts of client
+     *  sync messages
      */
-    void Pull(uint32 offset) throws(UserNotFound);
+    uint32 Sync(uint32 offset,uint32 count) throws(UserNotFound);
 }
 
 contract IMAuth{
@@ -122,9 +122,16 @@ contract IMClient{
     /**
      * push im message to client
      */
+    @gslang.Async
     void Push(Mail mail);
     /**
      * notify client newest message timestamp
      */
     void Notify(uint32 SQID);
+
+    /**
+     * notify client other device with which the same user login state changed event
+     */
+     @gslang.Async
+    void DeviceStateChanged(Device device,bool online);
 }

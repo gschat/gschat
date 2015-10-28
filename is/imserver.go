@@ -1,4 +1,4 @@
-package server
+package is
 
 import (
 	"path/filepath"
