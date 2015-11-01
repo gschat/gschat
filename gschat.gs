@@ -4,97 +4,23 @@ using gslang.Exception;
 using gslang.Package;
 using gslang.Flag;
 using com.gsrpc.Device;
+using com.gsrpc.KV;
+using com.gschat.Mail;
+using com.gschat.UserNotFound;
+using com.gschat.UnexpectSQID;
+using com.gschat.ResourceNotFound;
+using com.gschat.UserAuthFailed;
 
 @Package(Lang:"golang",Name:"com.gschat",Redirect:"github.com/gschat/gschat")
 
 @Package(Lang:"objc",Name:"com.gschat",Redirect:"GSChat")
 
-table Mail {
-    string          MailID      ; // IM data uuid
-    uint32          SQID        ; // The IM data's server timestamp
-    uint64          TS          ; // IM data timestamp
-    string          Sender      ; // IM data sender
-    string          Receiver    ; // IM data receiver
-    MailType        Type        ; // IM data type {@link DataType}
-    string          Content     ; // IM data message
-    Attachment[]    Attachments ; // IM attachment list
-    byte[]          Extension   ; //
-}
 
-table Attachment {
-    AttachmentType  Type        ; // attachment type
-    byte[]          Content     ; // attachment content
-}
-
-enum AttachmentType {
-    Text,Image,Video,Audio,GPS,CMD,Customer
-}
-
-
-table AttachmentText {
-    string          Text        ; // text content
-}
-
-table AttachmentGPS {
-    float64         Longitude   ;
-    float64         Latitude    ;
-    string          Address     ;
-}
-
-table AttachmentImage {
-    string          Key         ;
-    string          Name        ;
-}
-
-table AttachmentVideo {
-    string          Key         ;
-    string          Name        ;
-    int16           Duration    ;
-}
-
-table AttachmentAudio {
-    string          Key         ;
-    string          Name        ;
-    int16           Duration    ;
-}
-
-table AttachmentCMD {
-    string          Command     ;
-}
-
-enum MailType {
-    Single(0),Multi(1),System(2)
-}
-
-/**
- * if not found current user {@link IMService} will throw this exception
- */
-@Exception
-table UserNotFound {}
-
-@Exception
-table UserAuthFailed {}
-
-@Exception
-table ResourceNotFound{}
-
-@Exception
-table UnexpectSQID{}
-
-enum ServiceType{
-    Unknown,IM,Push,Auth,Client
-}
-
-table Property{
-    string Key;
-    string Value;
-}
-
-contract IM{
+contract MailHub{
     /**
-     * get send SQID
+     * get put SQID
      */
-    uint32 Prepare();
+    uint32 PutSync();
     /**
      * put message data into receiver message queue
      * @return the data's service timestamp
@@ -107,18 +33,18 @@ contract IM{
     uint32 Sync(uint32 offset,uint32 count) throws(UserNotFound);
 }
 
-contract IMAuth{
-    Property[] Login(string username,Property[] properties)  throws(UserNotFound,UserAuthFailed);
+contract Auth{
+    KV[] Login(string username,KV[] properties)  throws(UserNotFound,UserAuthFailed);
 
-    void Logoff(Property[] properties);
+    void Logoff(KV[] properties);
 }
 
-contract IMPush {
+contract Push {
     void Register(byte[] pushToken);
     void Unregister();
 }
 
-contract IMClient{
+contract Client{
     /**
      * push im message to client
      */
@@ -127,6 +53,7 @@ contract IMClient{
     /**
      * notify client newest message timestamp
      */
+    @gslang.Async
     void Notify(uint32 SQID);
 
     /**

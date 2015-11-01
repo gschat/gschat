@@ -12,18 +12,14 @@
 
     "properties":{
         "gsrpc":{
-            "golang":["github.com/gsrpc/gsrpc","./gschat.gs","./service.gs"]
+            "golang":["github.com/gsrpc/gsrpc","./"]
         },
 
         "gsmake.golang.test" :[
-           {"dir":"./gw","flags":"-bench . -cpu 4 "},
-           {"dir":"./im","flags":"-bench . -cpu 4 "}
+             {"dir":"./","flags":"-bench . -cpu 4 "}
        ],
 
        "gsmake.golang.binary" :{
-             "simulator" : "cmd/simulator",
-             "gschat-proxy" : "cmd/proxy",
-             "gschat-server" : "cmd/server"
        }
     }
 }

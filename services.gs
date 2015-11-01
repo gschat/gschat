@@ -2,10 +2,10 @@ package com.gschat;
 
 
 using gslang.Exception;
-using com.gschat.ServiceType;
 using com.gsrpc.Device;
 using com.gschat.UserNotFound;
 using com.gschat.ResourceNotFound;
+using com.gschat.Mail;
 
 // DH key exchange data
 table DHKey {
@@ -16,7 +16,7 @@ table DHKey {
 /**
  * bind user to im service node
  */
-contract IMBinder {
+contract UserBinder {
     void BindUser(string userid, Device device);
     void UnbindUser(string userid,Device device);
 }
@@ -57,6 +57,7 @@ contract UserResolverListener {
 }
 
 contract PushServiceProvider {
+    void Push(Mail[] mails);
     void DeviceStatusChanged(Device device,bool online);
     void UserStatusChanged(string userID,Device device, bool online);
     void DeviceRegister(Device device,byte[] token);
