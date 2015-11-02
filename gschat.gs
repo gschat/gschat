@@ -34,7 +34,7 @@ contract MailHub{
 }
 
 contract Auth{
-    KV[] Login(string username,KV[] properties)  throws(UserNotFound,UserAuthFailed);
+    KV[] Login(string username,KV[] properties)  throws(UserNotFound,UserAuthFailed,ResourceNotFound);
 
     void Logoff(KV[] properties);
 }

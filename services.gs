@@ -61,5 +61,5 @@ contract PushServiceProvider {
     void DeviceStatusChanged(Device device,bool online);
     void UserStatusChanged(string userID,Device device, bool online);
     void DeviceRegister(Device device,byte[] token);
-    void DeviceUnreigster(Device device);
+    void DeviceUnregister(Device device);
 }

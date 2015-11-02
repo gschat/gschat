@@ -79,5 +79,5 @@ table ResourceNotFound{}
 table UnexpectSQID{}
 
 enum Service{
-    Unknown(1),MailHub(2),Push(3),Auth(4),Client(5)
+    Unknown(1),MailHub(2),Push(3),Auth(4),Client(5),UserBinder(6),PushServiceProvider(7)
 }

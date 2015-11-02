@@ -20,6 +20,8 @@
        ],
 
        "gsmake.golang.binary" :{
+           "gschat-proxy":"./cmd/proxy",
+           "gschat-simulator":"./cmd/simulator"
        }
     }
 }
