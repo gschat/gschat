@@ -21,7 +21,8 @@
 
        "gsmake.golang.binary" :{
            "gschat-proxy":"./cmd/proxy",
-           "gschat-simulator":"./cmd/simulator"
+           "gschat-simulator":"./cmd/simulator",
+           "gschat-mailhub":"./cmd/mailhub"
        }
     }
 }

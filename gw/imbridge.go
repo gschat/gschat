@@ -37,6 +37,8 @@ func (bridge *_IMBridge) Close() {
 	bridge.Lock()
 	defer bridge.Unlock()
 
+	bridge.I("close client")
+
 	bridge.close()
 }
 
@@ -126,22 +128,22 @@ func (bridge *_IMBridge) Login(callSite *gorpc.CallSite, username string, proper
 		}
 	}
 
-	// bind mailhub
+	//bind mailhub
 
-	// bridge.mailhub, ok = bridge.improxy.service(gschat.NameOfMailHub, bridge.client.Device().String())
-	//
-	// if !ok {
-	// 	bridge.E("there is no valid mailhub service")
-	// 	return nil, gschat.NewResourceNotFound()
-	// }
-	//
-	// err = gschat.BindUserBinder(uint16(gschat.ServiceUserBinder), bridge.mailhub).BindUser(callSite, bridge.username, bridge.client.Device())
-	//
-	// if err != nil {
-	// 	bridge.E("mailhub %s bind user %s from device %s error \n%s", bridge.mailhub, bridge.username, bridge.client.Device(), err)
-	//
-	// 	return nil, err
-	// }
+	bridge.mailhub, ok = bridge.improxy.service(gschat.NameOfMailHub, bridge.client.Device().String())
+
+	if !ok {
+		bridge.E("there is no valid mailhub service")
+		return nil, gschat.NewResourceNotFound()
+	}
+
+	err = gschat.BindUserBinder(uint16(gschat.ServiceUserBinder), bridge.mailhub).BindUser(callSite, bridge.username, bridge.client.Device())
+
+	if err != nil {
+		bridge.E("mailhub %s bind user %s from device %s error \n%s", bridge.mailhub, bridge.username, bridge.client.Device(), err)
+
+		return nil, err
+	}
 
 	bridge.I("device %s login with username %s -- success", bridge.client.Device(), username)
 
