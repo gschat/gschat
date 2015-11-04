@@ -44,12 +44,12 @@ func main() {
 
 	flag.Parse()
 
-	gsconfig.Set("gsproxy.frontend.laddr", *frontend)
-	gsconfig.Set("gsproxy.backend.laddr", *backend)
+	gsconfig.Update("gsproxy.frontend.laddr", *frontend)
+	gsconfig.Update("gsproxy.backend.laddr", *backend)
 
-	gsconfig.Set("gschat.proxy.log", *log)
+	gsconfig.Update("gschat.proxy.log", *log)
 
-	gsconfig.Set("gschat.proxy.log.level", *level)
+	gsconfig.Update("gschat.proxy.log.level", *level)
 
 	// load config file
 	if *config != "" {

@@ -7,7 +7,7 @@ using com.gsrpc.Device;
 using com.gsrpc.KV;
 
 table Mail {
-    string          MailID      ; // IM data uuid
+    uint64          ID          ; // mail ID
     uint32          SQID        ; // The IM data's server timestamp
     uint64          TS          ; // IM data timestamp
     string          Sender      ; // IM data sender
@@ -74,6 +74,9 @@ table UserAuthFailed {}
 
 @Exception
 table ResourceNotFound{}
+
+@Exception
+table ResourceBusy{}
 
 @Exception
 table UnexpectSQID{}

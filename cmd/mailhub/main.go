@@ -44,13 +44,13 @@ func main() {
 
 	flag.Parse()
 
-	gsconfig.Set("gschat.mailhub.log", *log)
+	gsconfig.Update("gschat.mailhub.log", *log)
 
-	gsconfig.Set("gschat.mailhub.log.level", *level)
+	gsconfig.Update("gschat.mailhub.log.level", *level)
 
-	gsconfig.Set("gschat.mailhub.nodename", *nodename)
+	gsconfig.Update("gschat.mailhub.nodename", *nodename)
 
-	gsconfig.Set("gschat.mailhub.proxies", *proxies)
+	gsconfig.Update("gschat.mailhub.proxies", *proxies)
 
 	// load config file
 	if *config != "" {

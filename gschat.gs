@@ -9,6 +9,7 @@ using com.gschat.Mail;
 using com.gschat.UserNotFound;
 using com.gschat.UnexpectSQID;
 using com.gschat.ResourceNotFound;
+using com.gschat.ResourceBusy;
 using com.gschat.UserAuthFailed;
 
 @Package(Lang:"golang",Name:"com.gschat",Redirect:"github.com/gschat/gschat")
@@ -30,7 +31,12 @@ contract MailHub{
     /**
      *  sync messages
      */
-    uint32 Sync(uint32 offset,uint32 count) throws(UserNotFound);
+    uint32 Sync(uint32 offset,uint32 count) throws(UserNotFound,ResourceNotFound,ResourceBusy);
+
+    /**
+     * finish one sync stream with last message id
+     */
+    void Fin(uint32 offset);
 }
 
 contract Auth{
@@ -50,6 +56,7 @@ contract Client{
      */
     @gslang.Async
     void Push(Mail mail);
+
     /**
      * notify client newest message timestamp
      */
