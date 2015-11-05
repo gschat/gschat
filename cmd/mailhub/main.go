@@ -86,7 +86,7 @@ func main() {
 		gslogger.NewFlags(gslogger.ParseLevel(*level))
 	}
 
-	mailhub := mailhub.New(*nodename)
+	mailhub := mailhub.New(*nodename, nil)
 
 	var eventLoop = gorpc.NewEventLoop(uint32(runtime.NumCPU()), 2048, 500*time.Millisecond)
 

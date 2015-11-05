@@ -76,7 +76,7 @@ func (mailbox *_MailBox) removeAgent(device *gorpc.Device) {
 }
 
 func (mailbox *_MailBox) mail(id uint32) (*gschat.Mail, error) {
-	return nil, nil
+	return mailbox.mailhub.storage.Query(mailbox.username, id)
 }
 
 func (mailbox *_MailBox) receivedID() (uint32, error) {

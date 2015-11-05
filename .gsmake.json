@@ -13,7 +13,7 @@
 
     "properties":{
         "gsrpc":{
-            "golang":["github.com/gsrpc/gsrpc","./"]
+            "golang":["github.com/gsrpc/gsrpc","./","./synctest/test.gs"]
         },
 
         "gsmake.golang.test" :[
@@ -23,7 +23,9 @@
        "gsmake.golang.binary" :{
            "gschat-proxy":"./cmd/proxy",
            "gschat-simulator":"./cmd/simulator",
-           "gschat-mailhub":"./cmd/mailhub"
+           "gschat-mailhub":"./cmd/mailhub",
+           "sync-client":"./synctest/client",
+           "sync-server":"./synctest/server"
        }
     }
 }
