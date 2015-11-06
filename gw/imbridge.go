@@ -145,6 +145,8 @@ func (bridge *_IMBridge) Login(callSite *gorpc.CallSite, username string, proper
 		return nil, err
 	}
 
+	bridge.client.TransproxyBind(uint16(gschat.ServiceMailHub), bridge.mailhub)
+
 	bridge.I("device %s login with username %s -- success", bridge.client.Device(), username)
 
 	return nil, nil

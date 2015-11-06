@@ -79,6 +79,12 @@ func (mailbox *_MailBox) mail(id uint32) (*gschat.Mail, error) {
 	return mailbox.mailhub.storage.Query(mailbox.username, id)
 }
 
+func (mailbox *_MailBox) notify(id uint32) {
+	for _, client := range mailbox.clients {
+		client.notifyClient(id)
+	}
+}
+
 func (mailbox *_MailBox) receivedID() (uint32, error) {
 	return mailbox.mailhub.storage.SEQID(mailbox.username)
 }

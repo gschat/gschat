@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"net/http"
 	_ "net/http/pprof"
 	"path/filepath"
 	"runtime"
@@ -21,7 +20,7 @@ var applog = gslogger.Get("profile")
 
 var config = flag.String("config", "", "set the config file to load")
 
-var proxies = flag.String("p", "localhost:13516", "set gschat-proxy nodes")
+var proxies = flag.String("p", "localhost:15827", "set gschat-proxy nodes")
 
 var log = flag.String("log", "", "write log file")
 
@@ -38,9 +37,9 @@ func main() {
 		gslogger.Join()
 	}()
 
-	go func() {
-		applog.E("%s", http.ListenAndServe("localhost:7000", nil))
-	}()
+	// go func() {
+	// 	applog.E("%s", http.ListenAndServe("localhost:7000", nil))
+	// }()
 
 	flag.Parse()
 

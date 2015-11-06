@@ -3,7 +3,6 @@ package main
 
 import (
 	"flag"
-	"net/http"
 	_ "net/http/pprof"
 	"path/filepath"
 	"runtime"
@@ -38,9 +37,9 @@ func main() {
 		gslogger.Join()
 	}()
 
-	go func() {
-		applog.E("%s", http.ListenAndServe("localhost:7000", nil))
-	}()
+	// go func() {
+	// 	applog.E("%s", http.ListenAndServe("localhost:7000", nil))
+	// }()
 
 	flag.Parse()
 

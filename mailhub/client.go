@@ -27,6 +27,7 @@ func (mailbox *_MailBox) newClient(agent gsagent.Agent) *_Client {
 		Log:     gslogger.Get("mailbox"),
 		agent:   agent,
 		mailbox: mailbox,
+		closed:  make(chan bool),
 	}
 
 	// create client proxy interface
@@ -88,7 +89,7 @@ func (client *_Client) PutSync(callSite *gorpc.CallSite) (retval uint32, err err
 }
 
 func (client *_Client) Put(callSite *gorpc.CallSite, mail *gschat.Mail) (retval uint64, err error) {
-	return client.mailbox.mailhub.dispatchMail(mail)
+	return client.mailbox.mailhub.dispatchMail(client.agent.ID(), mail)
 }
 
 func (client *_Client) Sync(callSite *gorpc.CallSite, offset uint32, count uint32) (retval uint32, err error) {

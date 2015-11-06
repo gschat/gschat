@@ -16,3 +16,7 @@ type Storage interface {
 	// query the user's mailbox last message id
 	SEQID(username string) (uint32, error)
 }
+
+// The memory cached implement Storage interface
+type _MemoryCached struct {
+}

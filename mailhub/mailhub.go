@@ -158,15 +158,25 @@ func (mailhub *_MailHub) UnbindUser(callSite *gorpc.CallSite, userid string, dev
 	return nil
 }
 
+func (mailhub *_MailHub) user(username string) (*_MailBox, bool) {
+
+	mailhub.userMutex.RLock()
+	defer mailhub.userMutex.RUnlock()
+
+	mailbox, ok := mailhub.users[username]
+
+	return mailbox, ok
+}
+
 func (mailhub *_MailHub) queryGroup(id string) ([]string, bool) {
 	return nil, false
 }
 
-func (mailhub *_MailHub) queryBlockRule(id string) ([]*gschat.BlockRule, bool) {
-	return nil, false
+func (mailhub *_MailHub) queryBlockRule(id string) []*gschat.BlockRule {
+	return nil
 }
 
-func (mailhub *_MailHub) dispatchMail(mail *gschat.Mail) (uint64, error) {
+func (mailhub *_MailHub) dispatchMail(device *gorpc.Device, mail *gschat.Mail) (uint64, error) {
 
 	if mail.Type == gschat.MailTypeMulti {
 		group, ok := mailhub.queryGroup(mail.Receiver)
@@ -178,10 +188,35 @@ func (mailhub *_MailHub) dispatchMail(mail *gschat.Mail) (uint64, error) {
 		mail.ID = <-mailhub.snowflake.Gen
 
 		for _, username := range group {
-			mailhub.storage.Save(username, mail)
-			//TODO: update mailbox
+			mailhub.receivedMail(username, mail)
 		}
+	} else if mail.Type == gschat.MailTypeSingle {
+		mailhub.receivedMail(mail.Receiver, mail)
+	} else {
+		mailhub.W("unsupport mail type '%s' from %s", mail.Type, device)
 	}
 
 	return 0, nil
+}
+
+func (mailhub *_MailHub) receivedMail(username string, mail *gschat.Mail) {
+
+	blockRules := mailhub.queryBlockRule(username)
+
+	for _, rule := range blockRules {
+		if rule.Target == mail.Sender {
+			return
+		}
+	}
+
+	id, err := mailhub.storage.Save(username, mail)
+
+	if err != nil {
+		mailhub.W("save user %s mail error :%s", username, err)
+		return
+	}
+
+	if mailbox, ok := mailhub.user(username); ok {
+		mailbox.notify(id)
+	}
 }

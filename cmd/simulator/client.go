@@ -11,9 +11,10 @@ import (
 )
 
 type _Client struct {
-	gslogger.Log               // mixin log
-	name         string        // client user name
-	device       *gorpc.Device // client device name
+	gslogger.Log                // mixin log
+	name         string         // client user name
+	device       *gorpc.Device  // client device name
+	mailhub      gschat.MailHub // mailhub
 }
 
 func newClient(eventLoop gorpc.EventLoop, name string, raddr string, heartbeat time.Duration, dhkeyResolver handler.DHKeyResolver) (*_Client, error) {
@@ -79,6 +80,20 @@ func (client *_Client) StateChanged(pipeline gorpc.Pipeline, state gorpc.State) 
 		}
 
 		client.I("user %s login success", client.name)
+
+		client.mailhub = gschat.BindMailHub(uint16(gschat.ServiceMailHub), pipeline)
+
+		mail := gschat.NewMail()
+
+		mail.Sender = client.name
+		mail.Receiver = client.name
+
+		if _, err := client.mailhub.Put(nil, mail); err != nil {
+			go pipeline.Inactive()
+			client.I("user %s send message error\n%s", client.name, err)
+			return
+		}
+
 	} else {
 		client.I("client %s connection state changed %s", client.name, state)
 		pipeline.RemoveService(gschat.MakeClient(uint16(gschat.ServiceClient), client))
@@ -90,6 +105,7 @@ func (client *_Client) Push(callSite *gorpc.CallSite, mail *gschat.Mail) (err er
 }
 
 func (client *_Client) Notify(callSite *gorpc.CallSite, SQID uint32) (err error) {
+	client.I("client notify ....")
 	return nil
 }
 
