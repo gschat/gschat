@@ -10,8 +10,8 @@ import (
 	"github.com/gsrpc/gorpc/hashring"
 )
 
-// the gschat proxy service
-type _IMProxy struct {
+// IMProxy the gschat proxy service
+type IMProxy struct {
 	gslogger.Log                                          // mixin gslogger APIs
 	sync.RWMutex                                          // read/write mutex
 	servers      map[gsproxy.Server][]*gorpc.NamedService // bind servers
@@ -20,8 +20,8 @@ type _IMProxy struct {
 }
 
 // New create new im proxy instance
-func New() gsproxy.Proxy {
-	return &_IMProxy{
+func New() *IMProxy {
+	return &IMProxy{
 		Log:      gslogger.Get("improxy"),
 		servers:  make(map[gsproxy.Server][]*gorpc.NamedService),
 		services: make(map[string]*hashring.HashRing),
@@ -29,16 +29,19 @@ func New() gsproxy.Proxy {
 	}
 }
 
-func (improxy *_IMProxy) Register(context gsproxy.Context) error {
+// Register  implement gsproxy.Proxy interface
+func (improxy *IMProxy) Register(context gsproxy.Context) error {
 	improxy.I("improxy started")
 	return nil
 }
 
-func (improxy *_IMProxy) Unregister(context gsproxy.Context) {
+// Unregister implement gsproxy.Proxy interface
+func (improxy *IMProxy) Unregister(context gsproxy.Context) {
 	improxy.I("improxy closed")
 }
 
-func (improxy *_IMProxy) BindServices(context gsproxy.Context, server gsproxy.Server, services []*gorpc.NamedService) error {
+// BindServices implement gsproxy.Proxy interface
+func (improxy *IMProxy) BindServices(context gsproxy.Context, server gsproxy.Server, services []*gorpc.NamedService) error {
 
 	improxy.Lock()
 	defer improxy.Unlock()
@@ -76,7 +79,7 @@ func (improxy *_IMProxy) BindServices(context gsproxy.Context, server gsproxy.Se
 }
 
 // service query server node with service name and shared key
-func (improxy *_IMProxy) service(name string, sharedkey string) (gsproxy.Server, bool) {
+func (improxy *IMProxy) service(name string, sharedkey string) (gsproxy.Server, bool) {
 
 	improxy.RLock()
 	defer improxy.RUnlock()
@@ -91,7 +94,7 @@ func (improxy *_IMProxy) service(name string, sharedkey string) (gsproxy.Server,
 
 }
 
-func (improxy *_IMProxy) unbindServices(context gsproxy.Context, server gsproxy.Server) {
+func (improxy *IMProxy) unbindServices(context gsproxy.Context, server gsproxy.Server) {
 
 	if services, ok := improxy.servers[server]; ok {
 		for _, service := range services {
@@ -110,7 +113,8 @@ func (improxy *_IMProxy) unbindServices(context gsproxy.Context, server gsproxy.
 	}
 }
 
-func (improxy *_IMProxy) UnbindServices(context gsproxy.Context, server gsproxy.Server) {
+// UnbindServices implement gsproxy.Proxy interface
+func (improxy *IMProxy) UnbindServices(context gsproxy.Context, server gsproxy.Server) {
 	improxy.Lock()
 	defer improxy.Unlock()
 
@@ -118,7 +122,8 @@ func (improxy *_IMProxy) UnbindServices(context gsproxy.Context, server gsproxy.
 
 }
 
-func (improxy *_IMProxy) AddClient(context gsproxy.Context, client gsproxy.Client) error {
+// AddClient implement gsproxy.Proxy interface
+func (improxy *IMProxy) AddClient(context gsproxy.Context, client gsproxy.Client) error {
 
 	improxy.Lock()
 	defer improxy.Unlock()
@@ -132,7 +137,8 @@ func (improxy *_IMProxy) AddClient(context gsproxy.Context, client gsproxy.Clien
 	return nil
 }
 
-func (improxy *_IMProxy) RemoveClient(context gsproxy.Context, client gsproxy.Client) {
+// RemoveClient implement gsproxy.Proxy interface
+func (improxy *IMProxy) RemoveClient(context gsproxy.Context, client gsproxy.Client) {
 	improxy.Lock()
 	defer improxy.Unlock()
 

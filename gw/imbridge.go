@@ -13,14 +13,14 @@ import (
 type _IMBridge struct {
 	gslogger.Log                // mixin gslogger
 	sync.Mutex                  // login mutex
-	improxy      *_IMProxy      // improxy object
+	improxy      *IMProxy       // improxy object
 	client       gsproxy.Client // bound client
 	mailhub      gsproxy.Server // bound mailhub
 	pushservice  gsproxy.Server // bound pushservice
 	username     string         // login username
 }
 
-func (improxy *_IMProxy) newBridge(context gsproxy.Context, client gsproxy.Client) *_IMBridge {
+func (improxy *IMProxy) newBridge(context gsproxy.Context, client gsproxy.Client) *_IMBridge {
 	bridge := &_IMBridge{
 		Log:     gslogger.Get("imbridge"),
 		improxy: improxy,

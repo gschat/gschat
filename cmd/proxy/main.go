@@ -86,7 +86,7 @@ func main() {
 
 	applog.I("start gschat-proxy ...")
 
-	gsproxy.BuildProxy(improxy).Build("gschat-proxy", eventLoop)
+	gsproxy.BuildProxy(improxy).DHKeyResolver(improxy.NewDHKeyResolver()).Build("gschat-proxy", eventLoop)
 
 	applog.I("start gschat-proxy -- success")
 
