@@ -18,10 +18,11 @@ type _Sync struct {
 
 func (mailbox *_MailBox) newSync(client gschat.Client, offset uint32, count uint32) *_Sync {
 	sync := &_Sync{
-		Log:    gslogger.Get("mailbox"),
-		client: client,
-		offset: offset,
-		count:  count,
+		Log:     gslogger.Get("mailbox"),
+		client:  client,
+		mailbox: mailbox,
+		offset:  offset,
+		count:   count,
 	}
 
 	go sync.loop()

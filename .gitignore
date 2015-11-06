@@ -26,3 +26,5 @@ _testmain.go
 *.storage
 *.db
 bin
+.idea
+.iml

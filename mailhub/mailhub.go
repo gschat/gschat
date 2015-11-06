@@ -37,7 +37,7 @@ func New(name string, storage Storage) gsagent.System {
 		groups:        make(map[string][]string),
 		blockRules:    make(map[string][]*gschat.BlockRule),
 		userResolvers: hashring.New(),
-		storage:       storage,
+		storage:       newMemoryCached(storage),
 		namedServices: []*gorpc.NamedService{
 			&gorpc.NamedService{
 				Name:       gschat.NameOfMailHub,
@@ -135,6 +135,8 @@ func (mailhub *_MailHub) BindUser(callSite *gorpc.CallSite, userid string, devic
 
 	mailhub.agents[agentID] = mailbox
 
+	mailhub.I("bind user %s with device %s", userid, device)
+
 	return nil
 }
 
@@ -142,6 +144,8 @@ func (mailhub *_MailHub) UnbindUser(callSite *gorpc.CallSite, userid string, dev
 
 	mailhub.userMutex.Lock()
 	defer mailhub.userMutex.Unlock()
+
+	mailhub.I("ubind user %s with device %s", userid, device)
 
 	agentID := device.String()
 
@@ -153,6 +157,9 @@ func (mailhub *_MailHub) UnbindUser(callSite *gorpc.CallSite, userid string, dev
 
 	if target, ok := mailhub.agents[agentID]; ok && target == mailbox {
 		delete(mailhub.agents, agentID)
+
+		mailhub.I("ubind user %s with device %s -- success", userid, device)
+
 	}
 
 	return nil
@@ -178,14 +185,16 @@ func (mailhub *_MailHub) queryBlockRule(id string) []*gschat.BlockRule {
 
 func (mailhub *_MailHub) dispatchMail(device *gorpc.Device, mail *gschat.Mail) (uint64, error) {
 
+	mail.ID = <-mailhub.snowflake.Gen
+
+	mailhub.D("dispatch mail(%d:%s -> %s)", mail.ID, mail.Sender, mail.Receiver)
+
 	if mail.Type == gschat.MailTypeMulti {
 		group, ok := mailhub.queryGroup(mail.Receiver)
 
 		if !ok {
 			return 0, gschat.NewUserNotFound()
 		}
-
-		mail.ID = <-mailhub.snowflake.Gen
 
 		for _, username := range group {
 			mailhub.receivedMail(username, mail)
@@ -205,6 +214,9 @@ func (mailhub *_MailHub) receivedMail(username string, mail *gschat.Mail) {
 
 	for _, rule := range blockRules {
 		if rule.Target == mail.Sender {
+
+			mailhub.I("block receive mail(%d:%s -> %s)", mail.ID, mail.Sender, mail.Receiver)
+
 			return
 		}
 	}
@@ -216,7 +228,12 @@ func (mailhub *_MailHub) receivedMail(username string, mail *gschat.Mail) {
 		return
 	}
 
+	mailhub.D("received mail(%d:%s -> %s)", mail.ID, mail.Sender, mail.Receiver)
+
 	if mailbox, ok := mailhub.user(username); ok {
+		mailhub.D("notify mail(%d:%s -> %s) received", mail.ID, mail.Sender, mail.Receiver)
 		mailbox.notify(id)
+	} else {
+		mailhub.D("user %s offline , drop mail received notify", username)
 	}
 }

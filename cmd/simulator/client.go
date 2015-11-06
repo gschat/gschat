@@ -1,6 +1,7 @@
 package main
 
 import (
+	"sync"
 	"time"
 
 	"github.com/gschat/gschat"
@@ -11,10 +12,14 @@ import (
 )
 
 type _Client struct {
+	sync.Mutex
 	gslogger.Log                // mixin log
 	name         string         // client user name
 	device       *gorpc.Device  // client device name
 	mailhub      gschat.MailHub // mailhub
+	pipeline     gorpc.Pipeline // connection
+	seqID        uint32         // received id
+	syncNum      uint32         // current sync expect num
 }
 
 func newClient(eventLoop gorpc.EventLoop, name string, raddr string, heartbeat time.Duration, dhkeyResolver handler.DHKeyResolver) (*_Client, error) {
@@ -87,12 +92,15 @@ func (client *_Client) StateChanged(pipeline gorpc.Pipeline, state gorpc.State) 
 
 		mail.Sender = client.name
 		mail.Receiver = client.name
+		mail.Type = gschat.MailTypeSingle
 
 		if _, err := client.mailhub.Put(nil, mail); err != nil {
 			go pipeline.Inactive()
 			client.I("user %s send message error\n%s", client.name, err)
 			return
 		}
+
+		client.pipeline = pipeline
 
 	} else {
 		client.I("client %s connection state changed %s", client.name, state)
@@ -101,11 +109,53 @@ func (client *_Client) StateChanged(pipeline gorpc.Pipeline, state gorpc.State) 
 }
 
 func (client *_Client) Push(callSite *gorpc.CallSite, mail *gschat.Mail) (err error) {
+
+	client.Lock()
+	defer client.Unlock()
+
+	client.syncNum--
+
+	client.D("recv message :%d , expect num %d", mail.SQID, client.syncNum)
+
+	if client.seqID < mail.SQID {
+		client.seqID = mail.SQID
+	}
+
+	if client.syncNum == 0 {
+		client.D("sync finish ...")
+
+		client.mailhub.Fin(callSite, mail.SQID)
+
+		time.AfterFunc(5*time.Second, func() {
+			if _, err := client.mailhub.Put(nil, mail); err != nil {
+				go client.pipeline.Inactive()
+				client.I("user %s send message error\n%s", client.name, err)
+			}
+		})
+
+	}
+
 	return nil
 }
 
 func (client *_Client) Notify(callSite *gorpc.CallSite, SQID uint32) (err error) {
-	client.I("client notify ....")
+
+	client.D("client recv notify SQID %d", SQID)
+
+	if SQID > client.seqID {
+
+		client.D("sync message")
+
+		client.Lock()
+		defer client.Unlock()
+
+		client.syncNum, err = client.mailhub.Sync(callSite, client.seqID+1, SQID-client.seqID)
+
+		if err != nil {
+			client.E("call mailhub@Sync error :%s", err)
+		}
+	}
+
 	return nil
 }
 

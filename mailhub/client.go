@@ -41,8 +41,13 @@ func (mailbox *_MailBox) newClient(agent gsagent.Agent) *_Client {
 	return wrapper
 }
 
+func (client *_Client) Device() *gorpc.Device {
+	return client.agent.ID()
+}
+
 func (client *_Client) Close() {
 	close(client.closed)
+	client.agent.Close()
 }
 
 func (client *_Client) notifyLoop() {

@@ -81,6 +81,7 @@ func (mailbox *_MailBox) mail(id uint32) (*gschat.Mail, error) {
 
 func (mailbox *_MailBox) notify(id uint32) {
 	for _, client := range mailbox.clients {
+		mailbox.D("notify client %s with SQID %d", client.Device(), id)
 		client.notifyClient(id)
 	}
 }

@@ -137,13 +137,15 @@ func (bridge *_IMBridge) Login(callSite *gorpc.CallSite, username string, proper
 		return nil, gschat.NewResourceNotFound()
 	}
 
-	err = gschat.BindUserBinder(uint16(gschat.ServiceUserBinder), bridge.mailhub).BindUser(callSite, bridge.username, bridge.client.Device())
+	err = gschat.BindUserBinder(uint16(gschat.ServiceUserBinder), bridge.mailhub).BindUser(callSite, username, bridge.client.Device())
 
 	if err != nil {
 		bridge.E("mailhub %s bind user %s from device %s error \n%s", bridge.mailhub, bridge.username, bridge.client.Device(), err)
 
 		return nil, err
 	}
+
+	bridge.username = username
 
 	bridge.client.TransproxyBind(uint16(gschat.ServiceMailHub), bridge.mailhub)
 

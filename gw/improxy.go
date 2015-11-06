@@ -53,12 +53,12 @@ func (improxy *_IMProxy) BindServices(context gsproxy.Context, server gsproxy.Se
 
 	for _, service := range services {
 
-		improxy.I("bind service %s", service)
+		improxy.I("bind service %s", service.Name)
 
 		ring, ok := improxy.services[service.Name]
 
 		if !ok {
-			improxy.D("create new hashring for service %s", service.Name)
+			improxy.D("create new hashring for service %s", service)
 			ring = hashring.New()
 			improxy.services[service.Name] = ring
 		}
