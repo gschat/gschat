@@ -114,7 +114,7 @@ func (mailhub *_MailHub) RemoveTunnel(name string, pipeline gorpc.Pipeline) {
 
 }
 
-func (mailhub *_MailHub) BindUser(callSite *gorpc.CallSite, userid string, device *gorpc.Device) (err error) {
+func (mailhub *_MailHub) BindUser(callSite *gorpc.CallSite, userid string, device *gorpc.Device) error {
 	mailhub.userMutex.Lock()
 	defer mailhub.userMutex.Unlock()
 

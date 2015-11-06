@@ -18,7 +18,7 @@ table DHKey {
  */
 contract UserBinder {
     void BindUser(string userid, Device device);
-    void UnbindUser(string userid,Device device);
+    void UnbindUser(string userid, Device device);
 }
 
 /*

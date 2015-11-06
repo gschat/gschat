@@ -39,7 +39,7 @@ func (bridge *_IMBridge) Close() {
 
 	bridge.I("close client")
 
-	bridge.close()
+	go bridge.close()
 }
 
 func (bridge *_IMBridge) close() {
@@ -59,7 +59,6 @@ func (bridge *_IMBridge) close() {
 			bridge.E("notify pushservice %s device %s offline error \n%s", bridge.pushservice, bridge.client.Device(), err)
 		}
 	}
-
 }
 
 func (bridge *_IMBridge) Register(callSite *gorpc.CallSite, pushToken []byte) (err error) {

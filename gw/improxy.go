@@ -92,6 +92,7 @@ func (improxy *_IMProxy) service(name string, sharedkey string) (gsproxy.Server,
 }
 
 func (improxy *_IMProxy) unbindServices(context gsproxy.Context, server gsproxy.Server) {
+
 	if services, ok := improxy.servers[server]; ok {
 		for _, service := range services {
 			improxy.I("unbind service %s", service)
