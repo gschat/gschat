@@ -51,9 +51,9 @@ contract UserResolver {
  * user info listener
  */
 contract UserResolverListener {
-    void GroupChanged(string groupID, string[] added, string[] removed);
+    void GroupChanged(string groupID);
     void GroupRemoved(string groupID);
-    void BlockRuleChanged(string userID,BlockRule[] added, BlockRule[] removed);
+    void BlockRuleChanged(string userID);
 }
 
 contract PushServiceProvider {
@@ -62,4 +62,8 @@ contract PushServiceProvider {
     void UserStatusChanged(string userID,Device device, bool online);
     void DeviceRegister(Device device,byte[] token);
     void DeviceUnregister(Device device);
+}
+
+contract Gateway {
+
 }

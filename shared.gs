@@ -82,5 +82,5 @@ table ResourceBusy{}
 table UnexpectSQID{}
 
 enum Service{
-    Unknown(1),MailHub(2),Push(3),Auth(4),Client(5),UserBinder(6),PushServiceProvider(7),DHKeyResolver(8)
+    Unknown(1),MailHub(2),Push(3),Auth(4),Client(5),UserBinder(6),PushServiceProvider(7),DHKeyResolver(8),UserResolverListener(9),UserResolver(10)
 }

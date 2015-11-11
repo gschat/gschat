@@ -14,6 +14,13 @@ import (
 	"github.com/gsrpc/gorpc/snowflake"
 )
 
+// MailHub .
+type MailHub interface {
+	gsagent.System
+	AddUserResolver(name *gorpc.NamedService, userResolver gschat.UserResolver)
+	RemoveUserResolver(name *gorpc.NamedService)
+}
+
 type _MailHub struct {
 	gslogger.Log                                 // mixin gslogger
 	userMutex     sync.RWMutex                   // mixin read/write locker
@@ -29,7 +36,7 @@ type _MailHub struct {
 }
 
 // New create new mail hub
-func New(name string, storage Storage) gsagent.System {
+func New(name string, storage Storage) MailHub {
 	return &_MailHub{
 		Log:           gslogger.Get("mailhub"),
 		users:         make(map[string]*_MailBox),
@@ -42,6 +49,12 @@ func New(name string, storage Storage) gsagent.System {
 			&gorpc.NamedService{
 				Name:       gschat.NameOfMailHub,
 				DispatchID: uint16(gschat.ServiceMailHub),
+				VNodes:     gsconfig.Uint32("gschat.mailhub.vnodes", 4),
+				NodeName:   name,
+			},
+			&gorpc.NamedService{
+				Name:       gschat.NameOfUserResolverListener,
+				DispatchID: uint16(gschat.ServiceUserResolverListener),
 				VNodes:     gsconfig.Uint32("gschat.mailhub.vnodes", 4),
 				NodeName:   name,
 			},
@@ -108,6 +121,18 @@ func (mailhub *_MailHub) AgentServices() []*gorpc.NamedService {
 
 func (mailhub *_MailHub) AddTunnel(name string, pipeline gorpc.Pipeline) {
 	pipeline.AddService(gschat.MakeUserBinder(uint16(gschat.ServiceUserBinder), mailhub))
+
+	pipeline.AddService(gschat.MakeUserResolverListener(uint16(gschat.ServiceUserResolverListener), mailhub))
+}
+
+func (mailhub *_MailHub) GroupChanged(callSite *gorpc.CallSite, groupID string) (err error) {
+	return nil
+}
+func (mailhub *_MailHub) GroupRemoved(callSite *gorpc.CallSite, groupID string) (err error) {
+	return nil
+}
+func (mailhub *_MailHub) BlockRuleChanged(callSite *gorpc.CallSite, userID string) (err error) {
+	return nil
 }
 
 func (mailhub *_MailHub) RemoveTunnel(name string, pipeline gorpc.Pipeline) {
