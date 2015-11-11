@@ -36,6 +36,8 @@ func (mailbox *_MailBox) newClient(agent gsagent.Agent) *_Client {
 	// register mailhub interface
 	agent.AddService(gschat.MakeMailHub(uint16(gschat.ServiceMailHub), wrapper))
 
+	wrapper.I("create new client %s for %s", agent.ID(), mailbox.username)
+
 	go wrapper.notifyLoop()
 
 	return wrapper
@@ -48,9 +50,23 @@ func (client *_Client) Device() *gorpc.Device {
 func (client *_Client) Close() {
 	close(client.closed)
 	client.agent.Close()
+
+	if atomic.CompareAndSwapUint32(&client.syncFlag, 1, 0) {
+		client.sync.Close()
+		client.sync = nil
+	}
 }
 
 func (client *_Client) notifyLoop() {
+
+	id, err := client.mailbox.receivedID()
+
+	if err != nil {
+		client.E("user %s(%s) notify groutine query received id error :%s", client.mailbox.username, client.agent.ID(), err)
+	} else {
+		client.I("send %s's message notify to device %s", client.mailbox.username, client.agent.ID())
+		client.notifyClient(id)
+	}
 
 	ticker := time.NewTicker(gsconfig.Seconds("gschat.mailhub.notify.duration", 60))
 
@@ -68,6 +84,8 @@ func (client *_Client) notifyLoop() {
 			}
 
 			client.notifyClient(id)
+
+			client.I("send %s's message notify to device %s", client.mailbox.username, client.agent.ID())
 
 		case <-client.closed:
 			client.V("stop notify goroutine for device %s login with %s", client.agent.ID(), client.mailbox.username)
@@ -118,6 +136,7 @@ func (client *_Client) Fin(callSite *gorpc.CallSite, offset uint32) (err error) 
 
 	if atomic.CompareAndSwapUint32(&client.syncFlag, 1, 0) {
 		client.sync.Close()
+		client.sync = nil
 		return nil
 	}
 

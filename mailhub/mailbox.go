@@ -102,6 +102,10 @@ func (mailbox *_MailBox) sync(client gschat.Client, offset uint32, count uint32)
 		return nil, gschat.NewResourceNotFound()
 	}
 
+	if offset+count > (maxid + 1) {
+		count = maxid + 1 - offset
+	}
+
 	maxnum := gsconfig.Uint32("gschat.mailhub.sync.maxnum", 1024)
 
 	if count > maxnum {

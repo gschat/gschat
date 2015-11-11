@@ -205,7 +205,7 @@ func (mailhub *_MailHub) dispatchMail(device *gorpc.Device, mail *gschat.Mail) (
 		mailhub.W("unsupport mail type '%s' from %s", mail.Type, device)
 	}
 
-	return 0, nil
+	return mail.ID, nil
 }
 
 func (mailhub *_MailHub) receivedMail(username string, mail *gschat.Mail) {
@@ -228,7 +228,7 @@ func (mailhub *_MailHub) receivedMail(username string, mail *gschat.Mail) {
 		return
 	}
 
-	mailhub.D("received mail(%d:%s -> %s)", mail.ID, mail.Sender, mail.Receiver)
+	mailhub.D("received mail(%d:%d:%s -> %s)", mail.ID, mail.SQID, mail.Sender, mail.Receiver)
 
 	if mailbox, ok := mailhub.user(username); ok {
 		mailhub.D("notify mail(%d:%s -> %s) received", mail.ID, mail.Sender, mail.Receiver)

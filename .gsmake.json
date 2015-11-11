@@ -8,7 +8,7 @@
         {"name" : "github.com/gsrpc/gsrpc","domain":"task|gslang","version":"release/v1.0"},
         {"name" : "github.com/gsrpc/gorpc","version":"release/v2.0"},
 	    {"name" : "github.com/gsdocker/gsproxy","version":"release/v2.0"},
-        {"name" : "github.com/coreos/etcd","version":"v2.2.1"}
+        {"name" : "github.com/gsdocker/gsdiscovery","version":"develop"}
     ],
 
     "properties":{
