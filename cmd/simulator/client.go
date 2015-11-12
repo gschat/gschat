@@ -70,11 +70,11 @@ func (client *_Client) StateChanged(pipeline gorpc.Pipeline, state gorpc.State) 
 
 	if state == gorpc.StateConnected {
 
-		pipeline.AddService(gschat.MakeClient(uint16(gschat.ServiceClient), client))
+		pipeline.AddService(gschat.MakeClient(gorpc.ServiceID(gschat.NameOfClient), client))
 
 		client.I("user %s login ...", client.name)
 
-		auth := gschat.BindAuth(uint16(gschat.ServiceAuth), pipeline)
+		auth := gschat.BindAuth(gorpc.ServiceID(gschat.NameOfAuth), pipeline)
 
 		_, err := auth.Login(nil, client.name, nil)
 
@@ -86,7 +86,7 @@ func (client *_Client) StateChanged(pipeline gorpc.Pipeline, state gorpc.State) 
 
 		client.I("user %s login success", client.name)
 
-		client.mailhub = gschat.BindMailHub(uint16(gschat.ServiceMailHub), pipeline)
+		client.mailhub = gschat.BindMailHub(gorpc.ServiceID(gschat.NameOfMailHub), pipeline)
 
 		mail := gschat.NewMail()
 
@@ -104,7 +104,7 @@ func (client *_Client) StateChanged(pipeline gorpc.Pipeline, state gorpc.State) 
 
 	} else {
 		client.I("client %s connection state changed %s", client.name, state)
-		pipeline.RemoveService(gschat.MakeClient(uint16(gschat.ServiceClient), client))
+		pipeline.RemoveService(gschat.MakeClient(gorpc.ServiceID(gschat.NameOfClient), client))
 	}
 }
 

@@ -27,8 +27,8 @@ func (improxy *IMProxy) newBridge(context gsproxy.Context, client gsproxy.Client
 		client:  client,
 	}
 
-	client.AddService(gschat.MakeAuth(uint16(gschat.ServiceAuth), bridge))
-	client.AddService(gschat.MakeAuth(uint16(gschat.ServicePush), bridge))
+	client.AddService(gschat.MakeAuth(gorpc.ServiceID(gschat.NameOfAuth), bridge))
+	client.AddService(gschat.MakeAuth(gorpc.ServiceID(gschat.NameOfPush), bridge))
 
 	return bridge
 }
@@ -45,7 +45,7 @@ func (bridge *_IMBridge) Close() {
 func (bridge *_IMBridge) close() {
 	if bridge.mailhub != nil {
 
-		err := gschat.BindUserBinder(uint16(gschat.ServiceUserBinder), bridge.mailhub).UnbindUser(nil, bridge.username, bridge.client.Device())
+		err := gschat.BindUserBinder(gorpc.ServiceID(gschat.NameOfUserBinder), bridge.mailhub).UnbindUser(nil, bridge.username, bridge.client.Device())
 
 		if err != nil {
 			bridge.E("mailhub %s unbind user %s from device %s error \n%s", bridge.mailhub, bridge.username, bridge.client.Device(), err)
@@ -53,7 +53,7 @@ func (bridge *_IMBridge) close() {
 	}
 
 	if bridge.pushservice != nil {
-		err := gschat.BindPushServiceProvider(uint16(gschat.ServicePushServiceProvider), bridge.pushservice).DeviceStatusChanged(nil, bridge.client.Device(), false)
+		err := gschat.BindPushServiceProvider(gorpc.ServiceID(gschat.NameOfPushServiceProvider), bridge.pushservice).DeviceStatusChanged(nil, bridge.client.Device(), false)
 
 		if err != nil {
 			bridge.E("notify pushservice %s device %s offline error \n%s", bridge.pushservice, bridge.client.Device(), err)
@@ -76,7 +76,7 @@ func (bridge *_IMBridge) Register(callSite *gorpc.CallSite, pushToken []byte) (e
 		bridge.pushservice = server
 	}
 
-	err = gschat.BindPushServiceProvider(uint16(gschat.ServicePushServiceProvider), bridge.pushservice).DeviceRegister(callSite, bridge.client.Device(), pushToken)
+	err = gschat.BindPushServiceProvider(gorpc.ServiceID(gschat.NameOfPushServiceProvider), bridge.pushservice).DeviceRegister(callSite, bridge.client.Device(), pushToken)
 
 	if err != nil {
 		bridge.E("notify pushservice %s new device %s push token error\n%s", bridge.pushservice, bridge.client.Device(), err)
@@ -101,7 +101,7 @@ func (bridge *_IMBridge) Unregister(callSite *gorpc.CallSite) (err error) {
 		bridge.pushservice = server
 	}
 
-	err = gschat.BindPushServiceProvider(uint16(gschat.ServicePushServiceProvider), bridge.pushservice).DeviceUnregister(callSite, bridge.client.Device())
+	err = gschat.BindPushServiceProvider(gorpc.ServiceID(gschat.NameOfPushServiceProvider), bridge.pushservice).DeviceUnregister(callSite, bridge.client.Device())
 
 	if err != nil {
 		bridge.E("notify pushservice %s device %s unregister push token error\n%s", bridge.pushservice, bridge.client.Device(), err)
@@ -120,7 +120,7 @@ func (bridge *_IMBridge) Login(callSite *gorpc.CallSite, username string, proper
 
 	if ok {
 
-		properties, err = gschat.BindAuth(uint16(gschat.ServiceAuth), auth).Login(callSite, username, properties)
+		properties, err = gschat.BindAuth(gorpc.ServiceID(gschat.NameOfAuth), auth).Login(callSite, username, properties)
 
 		if err != nil {
 			return properties, err
@@ -136,7 +136,7 @@ func (bridge *_IMBridge) Login(callSite *gorpc.CallSite, username string, proper
 		return nil, gschat.NewResourceNotFound()
 	}
 
-	err = gschat.BindUserBinder(uint16(gschat.ServiceUserBinder), bridge.mailhub).BindUser(callSite, username, bridge.client.Device())
+	err = gschat.BindUserBinder(gorpc.ServiceID(gschat.NameOfUserBinder), bridge.mailhub).BindUser(callSite, username, bridge.client.Device())
 
 	if err != nil {
 		bridge.E("mailhub %s bind user %s from device %s error \n%s", bridge.mailhub, bridge.username, bridge.client.Device(), err)
@@ -146,7 +146,7 @@ func (bridge *_IMBridge) Login(callSite *gorpc.CallSite, username string, proper
 
 	bridge.username = username
 
-	bridge.client.TransproxyBind(uint16(gschat.ServiceMailHub), bridge.mailhub)
+	bridge.client.TransproxyBind(gorpc.ServiceID(gschat.NameOfMailHub), bridge.mailhub)
 
 	bridge.I("device %s login with username %s -- success", bridge.client.Device(), username)
 
@@ -159,7 +159,7 @@ func (bridge *_IMBridge) Logoff(callSite *gorpc.CallSite, properties []*gorpc.KV
 
 	if bridge.mailhub != nil {
 
-		err := gschat.BindUserBinder(uint16(gschat.ServiceUserBinder), bridge.mailhub).UnbindUser(nil, bridge.username, bridge.client.Device())
+		err := gschat.BindUserBinder(gorpc.ServiceID(gschat.NameOfUserBinder), bridge.mailhub).UnbindUser(nil, bridge.username, bridge.client.Device())
 
 		if err != nil {
 			bridge.E("mailhub %s unbind user %s from device %s error \n%s", bridge.mailhub, bridge.username, bridge.client.Device(), err)

@@ -31,10 +31,10 @@ func (mailbox *_MailBox) newClient(agent gsagent.Agent) *_Client {
 	}
 
 	// create client proxy interface
-	wrapper.api = gschat.BindClient(uint16(gschat.ServiceClient), agent)
+	wrapper.api = gschat.BindClient(gorpc.ServiceID(gschat.NameOfClient), agent)
 
 	// register mailhub interface
-	agent.AddService(gschat.MakeMailHub(uint16(gschat.ServiceMailHub), wrapper))
+	agent.AddService(gschat.MakeMailHub(gorpc.ServiceID(gschat.NameOfMailHub), wrapper))
 
 	wrapper.I("create new client %s for %s", agent.ID(), mailbox.username)
 

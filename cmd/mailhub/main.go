@@ -31,7 +31,7 @@ func bindUserResolver(runner gsrunner.Runner, namedService *gorpc.NamedService) 
 		return nil, err
 	}
 
-	return gschat.BindUserResolver(uint16(gschat.ServiceUserResolver), tunnel.Pipeline()), nil
+	return gschat.BindUserResolver(gorpc.ServiceID(gschat.NameOfUserResolver), tunnel.Pipeline()), nil
 }
 
 func zkstart(runner gsrunner.Runner, zkservers []string) {

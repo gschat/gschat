@@ -42,7 +42,7 @@ func (mailbox *_MailBox) addAgent(newagent gsagent.Agent) {
 
 	go func() {
 		for _, agent := range agents {
-			err := gschat.BindClient(uint16(gschat.ServiceClient), agent).DeviceStateChanged(nil, newagent.ID(), true)
+			err := gschat.BindClient(gorpc.ServiceID(gschat.NameOfClient), agent).DeviceStateChanged(nil, newagent.ID(), true)
 
 			if err != nil {
 				mailbox.E("call %s DeviceStateChanged error :%s", agent.ID(), err)
@@ -66,7 +66,7 @@ func (mailbox *_MailBox) removeAgent(device *gorpc.Device) {
 
 	go func() {
 		for _, agent := range agents {
-			err := gschat.BindClient(uint16(gschat.ServiceClient), agent).DeviceStateChanged(nil, device, false)
+			err := gschat.BindClient(gorpc.ServiceID(gschat.NameOfClient), agent).DeviceStateChanged(nil, device, false)
 
 			if err != nil {
 				mailbox.E("call %s DeviceStateChanged error :%s", agent.ID(), err)

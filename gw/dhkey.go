@@ -26,7 +26,7 @@ func (resolver *_DHKeyResolver) Resolve(device *gorpc.Device) (retval *handler.D
 	var dhkeyStr *gschat.DHKey
 
 	if service, ok := resolver.improxy.service(gschat.NameOfDHKeyResolver, device.String()); ok {
-		dhkeyStr, err = gschat.BindDHKeyResolver(uint16(gschat.ServiceDHKeyResolver), service).DHKeyResolve(nil, device)
+		dhkeyStr, err = gschat.BindDHKeyResolver(gorpc.ServiceID(gschat.NameOfDHKeyResolver), service).DHKeyResolve(nil, device)
 
 		if err != nil {
 			return nil, err

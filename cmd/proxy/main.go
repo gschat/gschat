@@ -37,7 +37,7 @@ func run(runner gsrunner.Runner) {
 
 		err = discovery.Register(&gorpc.NamedService{
 			Name:       gschat.NameOfGateway,
-			DispatchID: uint16(gschat.ServiceGateway),
+			DispatchID: gorpc.ServiceID(gschat.NameOfGateway),
 			VNodes:     gsconfig.Uint32("gschat.proxy.vnodes", 4),
 			NodeName:   node,
 		})

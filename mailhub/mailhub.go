@@ -48,13 +48,13 @@ func New(name string, storage Storage) MailHub {
 		namedServices: []*gorpc.NamedService{
 			&gorpc.NamedService{
 				Name:       gschat.NameOfMailHub,
-				DispatchID: uint16(gschat.ServiceMailHub),
+				DispatchID: gorpc.ServiceID(gschat.NameOfMailHub),
 				VNodes:     gsconfig.Uint32("gschat.mailhub.vnodes", 4),
 				NodeName:   name,
 			},
 			&gorpc.NamedService{
 				Name:       gschat.NameOfUserResolverListener,
-				DispatchID: uint16(gschat.ServiceUserResolverListener),
+				DispatchID: gorpc.ServiceID(gschat.NameOfUserResolverListener),
 				VNodes:     gsconfig.Uint32("gschat.mailhub.vnodes", 4),
 				NodeName:   name,
 			},
@@ -120,9 +120,9 @@ func (mailhub *_MailHub) AgentServices() []*gorpc.NamedService {
 }
 
 func (mailhub *_MailHub) AddTunnel(name string, pipeline gorpc.Pipeline) {
-	pipeline.AddService(gschat.MakeUserBinder(uint16(gschat.ServiceUserBinder), mailhub))
+	pipeline.AddService(gschat.MakeUserBinder(gorpc.ServiceID(gschat.NameOfUserBinder), mailhub))
 
-	pipeline.AddService(gschat.MakeUserResolverListener(uint16(gschat.ServiceUserResolverListener), mailhub))
+	pipeline.AddService(gschat.MakeUserResolverListener(gorpc.ServiceID(gschat.NameOfUserResolverListener), mailhub))
 }
 
 func (mailhub *_MailHub) GroupChanged(callSite *gorpc.CallSite, groupID string) (err error) {
