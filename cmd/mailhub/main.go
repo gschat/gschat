@@ -61,12 +61,17 @@ func zkstart(runner gsrunner.Runner, zkservers []string) {
 				case gsdiscovery.EvtCreated:
 
 					for _, service := range event.Services {
+
+						runner.I("connect to %s(%s) ...", gschat.NameOfGateway, service)
+
 						tunnel, err := context.Connect(service.NodeName, service.NodeName)
 
 						if err != nil {
 							runner.E("connect to %s(%s) error :%s", gschat.NameOfGateway, service.NodeName, err)
 							continue
 						}
+
+						runner.I("connect to %s(%s) -- success", gschat.NameOfGateway, service)
 
 						tunnels[service.NodeName] = tunnel
 
@@ -78,6 +83,8 @@ func zkstart(runner gsrunner.Runner, zkservers []string) {
 						if tunnel, ok := tunnels[service.NodeName]; ok {
 							tunnel.Close()
 							delete(tunnels, service.NodeName)
+
+							runner.I("disconnect from %s(%s) -- success", gschat.NameOfGateway, service)
 						}
 					}
 
@@ -86,6 +93,9 @@ func zkstart(runner gsrunner.Runner, zkservers []string) {
 				switch event.State {
 				case gsdiscovery.EvtCreated:
 					for _, service := range event.Services {
+
+						runner.I("connect to %s(%s) ...", gschat.NameOfUserResolver, service)
+
 						resolver, err := bindUserResolver(runner, service)
 
 						if err != nil {
@@ -94,13 +104,20 @@ func zkstart(runner gsrunner.Runner, zkservers []string) {
 						}
 
 						system.AddUserResolver(service, resolver)
+
+						runner.I("connect to %s(%s) -- success", gschat.NameOfUserResolver, service)
+
 					}
 				case gsdiscovery.EvtUpdated:
 					for _, service := range event.Services {
 						system.RemoveUserResolver(service)
+
+						runner.I("disconnect from %s(%s) -- success", gschat.NameOfUserResolver, service)
 					}
 
 					for _, service := range event.Updates {
+						runner.I("connect to %s(%s) ...", gschat.NameOfUserResolver, service)
+
 						resolver, err := bindUserResolver(runner, service)
 
 						if err != nil {
@@ -109,11 +126,15 @@ func zkstart(runner gsrunner.Runner, zkservers []string) {
 						}
 
 						system.AddUserResolver(service, resolver)
+
+						runner.I("connect to %s(%s) -- success", gschat.NameOfUserResolver, service)
 					}
 
 				case gsdiscovery.EvtDeleted:
 					for _, service := range event.Services {
 						system.RemoveUserResolver(service)
+
+						runner.I("disconnect from %s(%s) -- success", gschat.NameOfUserResolver, service)
 					}
 				}
 			}
@@ -139,18 +160,22 @@ func run(runner gsrunner.Runner) {
 
 	context = gsagent.BuildAgent(system).Build(node, eventLoop)
 
+	for _, proxy := range proxies {
+		runner.I("connect to %s(%s) ...", gschat.NameOfGateway, proxy)
+		tunnel, err := context.Connect(proxy, proxy)
+
+		if err != nil {
+			runner.E("connect to %s(%s) error :%s", gschat.NameOfGateway, proxy, err)
+			continue
+		}
+
+		runner.I("connect to %s(%s) -- success", gschat.NameOfGateway, proxy)
+
+		tunnels[proxy] = tunnel
+	}
+
 	if gsconfig.String("gschat.mailhub.zk", "") != "" {
 		zkstart(runner, zkservers)
-	} else {
-		for _, proxy := range proxies {
-			tunnel, err := context.Connect(proxy, proxy)
-
-			if err != nil {
-				runner.E("connect to proxy(%s) error :%s", err)
-			}
-
-			tunnels[proxy] = tunnel
-		}
 	}
 
 	for _ = range time.Tick(20 * time.Second) {
@@ -166,7 +191,7 @@ func main() {
 	).FlagString(
 		"node", "gschat.mailhub.node", "localhost:15111", "gschat proxy service back side listen address",
 	).FlagString(
-		"zk", "gschat.mailhub.zk", "", "the zookeeper server list",
+		"zk", "gschat.mailhub.zk", "10.0.0.213:2181", "the zookeeper server list",
 	)
 
 	runner.Run(run)
