@@ -41,6 +41,14 @@ func zkstart(runner gsrunner.Runner, zkservers []string) {
 		gserrors.Panic(err)
 	}
 
+	discovery.WatchPath(gsconfig.String("gschat.zk.nodes", ""))
+
+	err = discovery.UpdateRegistry(gsconfig.String("gschat.zk.regsitry", ""))
+
+	if err != nil {
+		gserrors.Panicf(err, "discovery update gsrpc registry error")
+	}
+
 	proxyWatcher, err := discovery.Watch(gschat.NameOfGateway)
 
 	if err != nil {
@@ -146,12 +154,10 @@ func run(runner gsrunner.Runner) {
 
 	node := gsconfig.String("gschat.mailhub.node", "")
 
-	zkservers := strings.Split(gsconfig.String("gschat.mailhub.zk", ""), "|")
-
 	proxies := strings.Split(gsconfig.String("gschat.mailhub.proxies", ""), "|")
 
 	runner.I("node name :%s", node)
-	runner.I("zkservers(%d) :%v", len(zkservers), zkservers)
+	runner.I("zkservers :%v", gsconfig.String("gschat.zk", ""))
 	runner.I("proxies :%v", proxies)
 
 	eventLoop := gorpc.NewEventLoop(uint32(runtime.NumCPU()), 2048, 500*time.Millisecond)
@@ -174,8 +180,8 @@ func run(runner gsrunner.Runner) {
 		tunnels[proxy] = tunnel
 	}
 
-	if gsconfig.String("gschat.mailhub.zk", "") != "" {
-		zkstart(runner, zkservers)
+	if gsconfig.String("gschat.zk", "") != "" {
+		zkstart(runner, strings.Split(gsconfig.String("gschat.zk", ""), "|"))
 	}
 
 	for _ = range time.Tick(20 * time.Second) {
@@ -187,11 +193,15 @@ func main() {
 	runner := gsrunner.New("gschat-mailhub")
 
 	runner.FlagString(
-		"proxies", "gschat.mailhub.proxies", "localhost:15827", "gschat proxy services list",
+		"proxies", "gschat.mailhub.proxies", "localhost:15672", "gschat proxy services list",
 	).FlagString(
 		"node", "gschat.mailhub.node", "localhost:15111", "gschat proxy service back side listen address",
 	).FlagString(
-		"zk", "gschat.mailhub.zk", "10.0.0.213:2181", "the zookeeper server list",
+		"zk", "gschat.zk", "10.0.0.213:2181", "the zookeeper server list",
+	).FlagString(
+		"zk-registry", "gschat.zk.regsitry", "/gschat/registry", "the zookeeper server list",
+	).FlagString(
+		"zk-nodes", "gschat.zk.nodes", "/gschat/nodes", "the zookeeper server list",
 	)
 
 	runner.Run(run)

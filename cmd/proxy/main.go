@@ -23,14 +23,30 @@ func run(runner gsrunner.Runner) {
 
 	improxy := gw.New()
 
-	gsproxy.BuildProxy(improxy).DHKeyResolver(improxy.NewDHKeyResolver()).Build("gschat-proxy", eventLoop)
+	gsproxy.BuildProxy(
+		improxy,
+	).DHKeyResolver(
+		improxy.NewDHKeyResolver(),
+	).AddrF(
+		gsconfig.String("gschat.proxy.laddr", ""),
+	).AddrB(
+		gsconfig.String("gschat.proxy.node", ""),
+	).Build("gschat-proxy", eventLoop)
 
-	if gsconfig.String("gschat.mailhub.zk", "") != "" {
-		zkservers := strings.Split(gsconfig.String("gschat.mailhub.zk", ""), "|")
+	if gsconfig.String("gschat.zk", "") != "" {
+		zkservers := strings.Split(gsconfig.String("gschat.zk", ""), "|")
 		discovery, err := zk.New(zkservers)
 
 		if err != nil {
 			gserrors.Panicf(err, "create new discovery service error")
+		}
+
+		discovery.WatchPath(gsconfig.String("gschat.zk.nodes", ""))
+
+		err = discovery.UpdateRegistry(gsconfig.String("gschat.zk.regsitry", ""))
+
+		if err != nil {
+			gserrors.Panicf(err, "discovery update gsrpc registry error")
 		}
 
 		node := gsconfig.String("gschat.proxy.node", "")
@@ -58,9 +74,13 @@ func main() {
 	runner.FlagString(
 		"laddr", "gschat.proxy.laddr", ":13516", "gschat proxy service front side listen address",
 	).FlagString(
-		"node", "gschat.proxy.node", ":15827", "gschat proxy service back side listen address",
+		"node", "gschat.proxy.node", ":15672", "gschat proxy service back side listen address",
 	).FlagString(
-		"zk", "gschat.mailhub.zk", "10.0.0.213:2181", "the zookeeper server list",
+		"zk", "gschat.zk", "10.0.0.213:2181", "the zookeeper server list",
+	).FlagString(
+		"zk-registry", "gschat.zk.regsitry", "/gschat/registry", "the zookeeper server list",
+	).FlagString(
+		"zk-nodes", "gschat.zk.nodes", "/gschat/nodes", "the zookeeper server list",
 	)
 
 	runner.Run(run)
