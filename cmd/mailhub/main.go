@@ -70,6 +70,10 @@ func zkstart(runner gsrunner.Runner, zkservers []string) {
 
 					for _, service := range event.Services {
 
+						if tunnel, ok := tunnels[service.NodeName]; ok {
+							tunnel.Close()
+						}
+
 						runner.I("connect to %s(%s) ...", gschat.NameOfGateway, service)
 
 						tunnel, err := context.Connect(service.NodeName, service.NodeName)
