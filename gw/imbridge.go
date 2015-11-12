@@ -4,7 +4,6 @@ import (
 	"sync"
 
 	"github.com/gschat/gschat"
-	"github.com/gsdocker/gserrors"
 	"github.com/gsdocker/gslogger"
 	"github.com/gsdocker/gsproxy"
 	"github.com/gsrpc/gorpc"
@@ -29,6 +28,18 @@ func (improxy *IMProxy) newBridge(context gsproxy.Context, client gsproxy.Client
 
 	client.AddService(gschat.MakeAuth(gorpc.ServiceID(gschat.NameOfAuth), bridge))
 	client.AddService(gschat.MakeAuth(gorpc.ServiceID(gschat.NameOfPush), bridge))
+
+	pushservice, ok := bridge.improxy.service(gschat.NameOfPushServiceProvider, bridge.client.Device().String())
+
+	if ok {
+		bridge.pushservice = pushservice
+
+		err := gschat.BindPushServiceProvider(gorpc.ServiceID(gschat.NameOfPushServiceProvider), bridge.pushservice).DeviceStatusChanged(nil, bridge.client.Device(), true)
+
+		if err != nil {
+			bridge.E("notify pushservice %s device %s offline error \n%s", bridge.pushservice, bridge.client.Device(), err)
+		}
+	}
 
 	return bridge
 }
@@ -66,14 +77,8 @@ func (bridge *_IMBridge) Register(callSite *gorpc.CallSite, pushToken []byte) (e
 	bridge.Lock()
 	defer bridge.Unlock()
 
-	if bridge.pushservice != nil {
-		server, ok := bridge.improxy.service(gschat.NameOfPushServiceProvider, bridge.client.Device().String())
-
-		if !ok {
-			return gserrors.Newf(gschat.NewResourceNotFound(), "there is no valid push service")
-		}
-
-		bridge.pushservice = server
+	if bridge.pushservice == nil {
+		return nil
 	}
 
 	err = gschat.BindPushServiceProvider(gorpc.ServiceID(gschat.NameOfPushServiceProvider), bridge.pushservice).DeviceRegister(callSite, bridge.client.Device(), pushToken)
@@ -91,14 +96,8 @@ func (bridge *_IMBridge) Unregister(callSite *gorpc.CallSite) (err error) {
 	bridge.Lock()
 	defer bridge.Unlock()
 
-	if bridge.pushservice != nil {
-		server, ok := bridge.improxy.service(gschat.NameOfPushServiceProvider, bridge.client.Device().String())
-
-		if !ok {
-			return gserrors.Newf(gschat.NewResourceNotFound(), "there is no valid push service")
-		}
-
-		bridge.pushservice = server
+	if bridge.pushservice == nil {
+		return nil
 	}
 
 	err = gschat.BindPushServiceProvider(gorpc.ServiceID(gschat.NameOfPushServiceProvider), bridge.pushservice).DeviceUnregister(callSite, bridge.client.Device())
@@ -115,6 +114,8 @@ func (bridge *_IMBridge) Login(callSite *gorpc.CallSite, username string, proper
 
 	bridge.Lock()
 	defer bridge.Unlock()
+
+	bridge.I("user %s login with device :%s", username, bridge.client.Device())
 
 	auth, ok := bridge.improxy.service(gschat.NameOfAuth, bridge.client.Device().String())
 

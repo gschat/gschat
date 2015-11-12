@@ -12,11 +12,12 @@ import (
 
 // IMProxy the gschat proxy service
 type IMProxy struct {
-	gslogger.Log                                          // mixin gslogger APIs
-	sync.RWMutex                                          // read/write mutex
-	servers      map[gsproxy.Server][]*gorpc.NamedService // bind servers
-	services     map[string]*hashring.HashRing            // register services
-	clients      map[string]*_IMBridge                    // clients
+	gslogger.Log                                           // mixin gslogger APIs
+	sync.RWMutex                                           // read/write mutex
+	servicesMutex sync.RWMutex                             // services mutex
+	servers       map[gsproxy.Server][]*gorpc.NamedService // bind servers
+	services      map[string]*hashring.HashRing            // register services
+	clients       map[string]*_IMBridge                    // clients
 }
 
 // New create new im proxy instance
@@ -43,8 +44,8 @@ func (improxy *IMProxy) Unregister(context gsproxy.Context) {
 // BindServices implement gsproxy.Proxy interface
 func (improxy *IMProxy) BindServices(context gsproxy.Context, server gsproxy.Server, services []*gorpc.NamedService) error {
 
-	improxy.Lock()
-	defer improxy.Unlock()
+	improxy.servicesMutex.Lock()
+	defer improxy.servicesMutex.Unlock()
 
 	improxy.I("bind new tranproxy services for %s", server)
 
@@ -81,8 +82,8 @@ func (improxy *IMProxy) BindServices(context gsproxy.Context, server gsproxy.Ser
 // service query server node with service name and shared key
 func (improxy *IMProxy) service(name string, sharedkey string) (gsproxy.Server, bool) {
 
-	improxy.RLock()
-	defer improxy.RUnlock()
+	improxy.servicesMutex.RLock()
+	defer improxy.servicesMutex.RUnlock()
 
 	if ring, ok := improxy.services[name]; ok {
 		if val, ok := ring.Get(sharedkey); ok {
@@ -115,8 +116,8 @@ func (improxy *IMProxy) unbindServices(context gsproxy.Context, server gsproxy.S
 
 // UnbindServices implement gsproxy.Proxy interface
 func (improxy *IMProxy) UnbindServices(context gsproxy.Context, server gsproxy.Server) {
-	improxy.Lock()
-	defer improxy.Unlock()
+	improxy.servicesMutex.Lock()
+	defer improxy.servicesMutex.Unlock()
 
 	improxy.unbindServices(context, server)
 
