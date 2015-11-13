@@ -3,5 +3,5 @@
 ### features
 
 1. modify mailhub :add user/group block rules support
-2. modify gw : invoke PushServiceProvider API when user/device online/offline
+2. **modify gw : invoke PushServiceProvider API when user/device online/offline**
 3. add new storage implement : cassandra

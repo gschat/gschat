@@ -22,17 +22,18 @@ type MailHub interface {
 }
 
 type _MailHub struct {
-	gslogger.Log                                 // mixin gslogger
-	userMutex     sync.RWMutex                   // mixin read/write locker
-	resolverMutex sync.RWMutex                   // mixin read/write locker
-	userResolvers *hashring.HashRing             // user resolver services
-	groups        map[string][]string            // groups
-	blockRules    map[string][]*gschat.BlockRule // block rules
-	users         map[string]*_MailBox           // user bound mailboxes
-	agents        map[string]*_MailBox           // agent bound mailbox
-	namedServices []*gorpc.NamedService          // transproxy services
-	storage       Storage                        // offline message storage
-	snowflake     *snowflake.SnowFlake           // id generate
+	gslogger.Log                                // mixin gslogger
+	userMutex     sync.RWMutex                  // mixin read/write locker
+	resolverMutex sync.RWMutex                  // mixin read/write locker
+	cachedMutex   sync.RWMutex                  // cached group/blockrule info read/writer locker
+	userResolvers *hashring.HashRing            // user resolver services
+	groups        map[string]*gschat.UserGroup  // groups
+	blockRules    map[string]*gschat.BlockRules // block rules
+	users         map[string]*_MailBox          // user bound mailboxes
+	agents        map[string]*_MailBox          // agent bound mailbox
+	namedServices []*gorpc.NamedService         // transproxy services
+	storage       Storage                       // offline message storage
+	snowflake     *snowflake.SnowFlake          // id generate
 }
 
 // New create new mail hub
@@ -41,8 +42,8 @@ func New(name string, storage Storage) MailHub {
 		Log:           gslogger.Get("mailhub"),
 		users:         make(map[string]*_MailBox),
 		agents:        make(map[string]*_MailBox),
-		groups:        make(map[string][]string),
-		blockRules:    make(map[string][]*gschat.BlockRule),
+		groups:        make(map[string]*gschat.UserGroup),
+		blockRules:    make(map[string]*gschat.BlockRules),
 		userResolvers: hashring.New(),
 		storage:       newMemoryCached(storage),
 		namedServices: []*gorpc.NamedService{
@@ -92,6 +93,19 @@ func (mailhub *_MailHub) RemoveUserResolver(name *gorpc.NamedService) {
 	}
 }
 
+func (mailhub *_MailHub) userResolver(key string) (gschat.UserResolver, bool) {
+	mailhub.resolverMutex.RLock()
+	defer mailhub.resolverMutex.RUnlock()
+
+	val, ok := mailhub.userResolvers.Get(key)
+
+	if ok {
+		return val.(gschat.UserResolver), true
+	}
+
+	return nil, false
+}
+
 func (mailhub *_MailHub) Register(context gsagent.Context) error {
 	return nil
 }
@@ -126,12 +140,27 @@ func (mailhub *_MailHub) AddTunnel(name string, pipeline gorpc.Pipeline) {
 }
 
 func (mailhub *_MailHub) GroupChanged(callSite *gorpc.CallSite, groupID string) (err error) {
+	mailhub.cachedMutex.Lock()
+	defer mailhub.cachedMutex.Unlock()
+
+	delete(mailhub.groups, groupID)
+
 	return nil
 }
 func (mailhub *_MailHub) GroupRemoved(callSite *gorpc.CallSite, groupID string) (err error) {
+	mailhub.cachedMutex.Lock()
+	defer mailhub.cachedMutex.Unlock()
+
+	delete(mailhub.groups, groupID)
+
 	return nil
 }
 func (mailhub *_MailHub) BlockRuleChanged(callSite *gorpc.CallSite, userID string) (err error) {
+	mailhub.cachedMutex.Lock()
+	defer mailhub.cachedMutex.Unlock()
+
+	delete(mailhub.blockRules, userID)
+
 	return nil
 }
 
@@ -201,11 +230,66 @@ func (mailhub *_MailHub) user(username string) (*_MailBox, bool) {
 }
 
 func (mailhub *_MailHub) queryGroup(id string) ([]string, bool) {
-	return nil, false
+
+	mailhub.cachedMutex.RLock()
+	group, ok := mailhub.groups[id]
+	mailhub.cachedMutex.RUnlock()
+
+	if !ok {
+		// try get group info from user resolver services
+
+		if resolver, ok := mailhub.userResolver(id); ok {
+			var err error
+			group, err = resolver.QueryGroup(nil, id)
+
+			if err != nil {
+				return nil, false
+			}
+
+			mailhub.cachedMutex.Lock()
+			old, ok := mailhub.groups[id]
+			if (ok && old.Version < group.Version) || !ok {
+				mailhub.groups[id] = group
+			}
+			mailhub.cachedMutex.Unlock()
+
+		} else {
+			return nil, false
+		}
+	}
+
+	return group.Users, false
 }
 
 func (mailhub *_MailHub) queryBlockRule(id string) []*gschat.BlockRule {
-	return nil
+	mailhub.cachedMutex.RLock()
+	rules, ok := mailhub.blockRules[id]
+	mailhub.cachedMutex.RUnlock()
+
+	if !ok {
+		// try get group info from user resolver services
+
+		if resolver, ok := mailhub.userResolver(id); ok {
+			var err error
+			rules, err = resolver.QueryBlockRules(nil, id)
+
+			if err != nil {
+				return nil
+			}
+
+			mailhub.cachedMutex.Lock()
+			old, ok := mailhub.groups[id]
+			if (ok && old.Version < rules.Version) || !ok {
+				mailhub.blockRules[id] = rules
+			}
+			mailhub.cachedMutex.Unlock()
+
+		} else {
+			return nil
+		}
+	}
+
+	return rules.Rules
 }
 
 func (mailhub *_MailHub) dispatchMail(device *gorpc.Device, mail *gschat.Mail) (uint64, error) {

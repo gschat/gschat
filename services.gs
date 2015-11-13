@@ -37,14 +37,25 @@ table BlockRule {
     BlockType   BlockType;
 }
 
+
+table UserGroup {
+    string[]   Users;
+    uint32     Version;
+}
+
+table BlockRules {
+    BlockRule[] Rules;
+    uint32      Version;
+}
+
 /*
  * user system service
  */
 contract UserResolver {
     // get group user list
-    string[] QueryGroup(string groupID) throws(ResourceNotFound);
+    UserGroup QueryGroup(string groupID) throws(ResourceNotFound);
     // get user's block list
-    BlockRule[] QueryBlockRule(string userID);
+    BlockRules QueryBlockRules(string userID);
 }
 
 /*
