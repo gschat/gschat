@@ -16,6 +16,10 @@ using com.gschat.UserAuthFailed;
 
 @Package(Lang:"objc",Name:"com.gschat",Redirect:"GSChat")
 
+table Sync struct {
+    uint32      Offset;
+    uint32      Counter;
+}
 
 contract MailHub{
     /**
@@ -31,12 +35,17 @@ contract MailHub{
     /**
      *  sync messages
      */
-    uint32 Sync(uint32 offset,uint32 count) throws(UserNotFound,ResourceNotFound,ResourceBusy);
+    Sync Sync(uint32 offset,uint32 count) throws(UserNotFound,ResourceNotFound,ResourceBusy);
 
     /**
      * finish one sync stream with last message id
      */
     void Fin(uint32 offset);
+
+    /**
+     * fetch mails by mail SQID list
+     */
+    Mail[] Fetch(uint32[] mailIDs) throws(ResourceNotFound);
 }
 
 contract Auth{
@@ -58,7 +67,7 @@ contract Client{
     void Push(Mail mail);
 
     /**
-     * notify client newest message timestamp
+     * notify client the newest message's SQID
      */
     @gslang.Async
     void Notify(uint32 SQID);

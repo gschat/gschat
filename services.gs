@@ -68,7 +68,6 @@ contract UserResolverListener {
 }
 
 contract PushServiceProvider {
-    void Push(Mail[] mails);
     void DeviceStatusChanged(Device device,bool online);
     void UserStatusChanged(string userID,Device device, bool online);
     void DeviceRegister(Device device,byte[] token);
