@@ -132,7 +132,6 @@ func (client *_Client) Push(callSite *gorpc.CallSite, mail *gschat.Mail) (err er
 				client.I("user %s send message error\n%s", client.name, err)
 			}
 		})
-
 	}
 
 	return nil
@@ -149,11 +148,14 @@ func (client *_Client) Notify(callSite *gorpc.CallSite, SQID uint32) (err error)
 		client.Lock()
 		defer client.Unlock()
 
-		client.syncNum, err = client.mailhub.Sync(callSite, client.seqID+1, SQID-client.seqID)
+		sync, err := client.mailhub.Sync(callSite, client.seqID+1, SQID-client.seqID)
 
 		if err != nil {
 			client.E("call mailhub@Sync error :%s", err)
+			return err
 		}
+
+		client.syncNum = sync.Count
 	}
 
 	return nil

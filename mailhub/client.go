@@ -115,21 +115,24 @@ func (client *_Client) Put(callSite *gorpc.CallSite, mail *gschat.Mail) (retval 
 	return client.mailbox.mailhub.dispatchMail(client.agent.ID(), mail)
 }
 
-func (client *_Client) Sync(callSite *gorpc.CallSite, offset uint32, count uint32) (retval uint32, err error) {
+func (client *_Client) Sync(callSite *gorpc.CallSite, offset uint32, count uint32) (sync *gschat.Sync, err error) {
 
 	if atomic.CompareAndSwapUint32(&client.syncFlag, 0, 1) {
 		client.sync, err = client.mailbox.sync(client.api, offset, count)
 
 		if err != nil {
-			return 0, err
+			return nil, err
 		}
 
-		return client.sync.count, nil
+		return &gschat.Sync{
+			Offset: client.sync.offset,
+			Count:  client.sync.count,
+		}, nil
 	}
 
 	client.W("device %s with login use %s duplicate call sync", client.agent.ID(), client.mailbox.username)
 
-	return 0, gschat.NewResourceBusy()
+	return nil, gschat.NewResourceBusy()
 }
 
 func (client *_Client) Fin(callSite *gorpc.CallSite, offset uint32) (err error) {
@@ -141,4 +144,8 @@ func (client *_Client) Fin(callSite *gorpc.CallSite, offset uint32) (err error) 
 	}
 
 	return nil
+}
+
+func (client *_Client) Fetch(callSite *gorpc.CallSite, mailIDs []uint32) (retval []*gschat.Mail, err error) {
+	return nil, nil
 }

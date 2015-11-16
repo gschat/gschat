@@ -16,9 +16,9 @@ using com.gschat.UserAuthFailed;
 
 @Package(Lang:"objc",Name:"com.gschat",Redirect:"GSChat")
 
-table Sync struct {
+table Sync {
     uint32      Offset;
-    uint32      Counter;
+    uint32      Count;
 }
 
 contract MailHub{
