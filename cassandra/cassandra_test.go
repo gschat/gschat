@@ -1,21 +1,25 @@
 package cassandra
 
 import (
+	"flag"
 	"fmt"
-	"testing"
+	"strings"
 	"time"
 
 	"github.com/gschat/gocql"
+	"github.com/gsdocker/gserrors"
+	"github.com/gsdocker/gslogger"
 )
 
-var cluster = gocql.NewCluster("192.168.88.2", "192.168.88.3", "192.168.88.4")
+var hosts = flag.String("raddrs", "192.168.88.2|192.168.88.3|192.168.88.4", "cassandra cluster")
 
-func init() {
-	cluster.ProtoVersion = 4
-	cluster.CQLVersion = "3.3.1"
-}
+var conns = flag.Int("conns", 1000, "concurrent connections")
 
-func TestCreateKeySpace(t *testing.T) {
+var duration = flag.Duration("duration", time.Millisecond*10, "update duration")
+
+var applog = gslogger.Get("app")
+
+func createKeySpace(cluster *gocql.ClusterConfig) error {
 	cluster.Keyspace = "system"
 
 	cluster.Timeout = 60 * time.Second
@@ -25,7 +29,7 @@ func TestCreateKeySpace(t *testing.T) {
 	session, err := cluster.CreateSession()
 
 	if err != nil {
-		t.Fatal(err)
+		return gserrors.Newf(err, "create sessione rror")
 	}
 
 	defer session.Close()
@@ -42,40 +46,65 @@ func TestCreateKeySpace(t *testing.T) {
 	}`).Exec()
 
 	if err != nil {
-		t.Fatal(err)
+		return gserrors.Newf(err, "create keyspace bench error")
 	}
+
+	return nil
 }
 
-func createSession() *gocql.Session {
-	cluster.Keyspace = "bench"
-
+func createSession(cluster *gocql.ClusterConfig) *gocql.Session {
 	session, err := cluster.CreateSession()
 	if err != nil {
-		panic(err)
+		gserrors.Panicf(err, "create session error")
 	}
 
 	return session
 }
 
-func TestCreateTable(t *testing.T) {
-	session := createSession()
+func createTable(cluster *gocql.ClusterConfig) error {
+
+	session := createSession(cluster)
+
 	defer session.Close()
 
-	if err := session.Query(
-		`CREATE TABLE bench.SQID_TABLE(
-			name varchar primary key,
-			id   int
-		 )`,
-	).Exec(); err != nil {
-		t.Fatal(err)
+	if err := session.Query(`CREATE TABLE bench.SQID_TABLE(name varchar primary key,id   int)`).Exec(); err != nil {
+		gserrors.Newf(err, "create SQID_TABLE error")
 	}
 
-	for i := 0; i < 1000; i++ {
+	return nil
+}
+
+func main() {
+
+	defer func() {
+		if e := recover(); e != nil {
+			applog.E("%s", e)
+		}
+
+		gslogger.Join()
+	}()
+
+	cluster := gocql.NewCluster(strings.Split(*hosts, "|")...)
+
+	cluster.ProtoVersion = 4
+	cluster.CQLVersion = "3.3.1"
+
+	if err := createKeySpace(cluster); err != nil {
+		panic(err)
+	}
+
+	if err := createTable(cluster); err != nil {
+		panic(err)
+	}
+
+	cluster.Keyspace = "bench"
+
+	for i := 0; i < *conns; i++ {
 
 		name := fmt.Sprintf("test%d", i)
 
 		go func() {
-			session := createSession()
+			session := createSession(cluster)
 			defer session.Close()
 
 			if err := session.Query(`INSERT INTO bench.SQID_TABLE (name,id) VALUES (?,?)`, name, 0).Exec(); err != nil {
@@ -87,30 +116,8 @@ func TestCreateTable(t *testing.T) {
 					panic(err)
 				}
 
-				<-time.After(time.Millisecond * 10)
+				<-time.After(*duration)
 			}
 		}()
 	}
-}
-
-func BenchmarkUpdate(b *testing.B) {
-	b.StopTimer()
-	session := createSession()
-
-	if err := session.Query(`INSERT INTO bench.SQID_TABLE (name,id)
-		VALUES (?,?)`, "test", 0).Exec(); err != nil {
-		b.Fatal("insert:", err)
-	}
-
-	b.StartTimer()
-
-	for i := 0; i < b.N; i++ {
-		if err := session.Query(`UPDATE bench.SQID_TABLE SET id=? WHERE name = ?`, i, "test").Exec(); err != nil {
-			b.Fatal("update:", err)
-		}
-	}
-
-	b.StopTimer()
-	session.Close()
-	b.StartTimer()
 }
