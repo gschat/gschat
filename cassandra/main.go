@@ -70,7 +70,7 @@ func createTable(cluster *gocql.ClusterConfig) error {
 
 	defer session.Close()
 
-	if err := session.Query(`CREATE TABLE bench.SQID_TABLE(name varchar primary key,id   int)`).Exec(); err != nil {
+	if err := session.Query(`CREATE TABLE bench.SQID_TABLE(name varchar,id int,PRIMARY KEY (name)`).Exec(); err != nil {
 		gserrors.Newf(err, "create SQID_TABLE error")
 	}
 
