@@ -1,6 +1,7 @@
 package cassandra
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -37,11 +38,28 @@ func TestCreateKeySpace(t *testing.T) {
 	err = session.Query(`CREATE KEYSPACE bench
 	WITH replication = {
 		'class' : 'SimpleStrategy',
-		'replication_factor' : 1
+		'replication_factor' : 2
 	}`).Exec()
 
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	for i := 0; i < 1000; i++ {
+
+		name := fmt.Sprintf("test%d", i)
+
+		go func() {
+			if err := session.Query(`INSERT INTO bench.SQID_TABLE (name,id) VALUES (?,?)`, name, 0).Exec(); err != nil {
+				panic(err)
+			}
+
+			for i := 0; ; i++ {
+				if err := session.Query(`UPDATE bench.SQID_TABLE SET id=? WHERE name = ?`, i, name).Exec(); err != nil {
+					panic(err)
+				}
+			}
+		}()
 	}
 }
 
