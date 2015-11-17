@@ -10,7 +10,6 @@ import (
 var cluster = gocql.NewCluster("192.168.88.2", "192.168.88.3", "192.168.88.4")
 
 func init() {
-	cluster.Port = 7000
 	cluster.ProtoVersion = 4
 	cluster.CQLVersion = "3.3.1"
 }
