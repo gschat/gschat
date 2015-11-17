@@ -16,7 +16,7 @@ func init() {
 func TestCreateKeySpace(t *testing.T) {
 	cluster.Keyspace = "system"
 
-	cluster.Timeout = 5 * time.Second
+	cluster.Timeout = 60 * time.Second
 
 	var err error
 
