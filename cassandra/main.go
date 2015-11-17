@@ -16,6 +16,8 @@ var hosts = flag.String("raddrs", "192.168.88.2|192.168.88.3|192.168.88.4", "cas
 
 var conns = flag.Int("conns", 1000, "concurrent connections")
 
+var compress = flag.Bool("c", true, "turn on data compress")
+
 var rf = flag.Int("rf", 2, "data replication factor")
 
 var duration = flag.Duration("duration", time.Millisecond*10, "update duration")
@@ -26,6 +28,10 @@ func createKeySpace(cluster *gocql.ClusterConfig) error {
 	cluster.Keyspace = "system"
 
 	cluster.Timeout = 60 * time.Second
+
+	if *compress {
+		cluster.Compressor = &gocql.SnappyCompressor{}
+	}
 
 	var err error
 
@@ -109,27 +115,36 @@ func main() {
 	session := createSession(cluster)
 	defer session.Close()
 
+	var names []string
+
 	for i := 0; i < *conns; i++ {
-
 		name := fmt.Sprintf("test%d", i)
+		names = append(names, name)
 
-		go func() {
-
-			if err := session.Query(`INSERT INTO bench.SQID_TABLE (name,id) VALUES (?,?)`, name, 0).Exec(); err != nil {
-				panic(err)
-			}
-
-			for i := 0; ; i++ {
-				if err := session.Query(`UPDATE bench.SQID_TABLE SET id=? WHERE name = ?`, i, name).Exec(); err != nil {
-					panic(err)
-				}
-
-				atomic.AddUint32(&counter, 1)
-
-				<-time.After(*duration)
-			}
-		}()
+		if err := session.Query(`INSERT INTO bench.SQID_TABLE (name,id) VALUES (?,?)`, name, 0).Exec(); err != nil {
+			panic(err)
+		}
 	}
+
+	go func() {
+
+		for i := 0; ; i++ {
+
+			batch := session.NewBatch(gocql.LoggedBatch)
+
+			for name := range names {
+				batch.Query(`UPDATE bench.SQID_TABLE SET id=? WHERE name = ?`, i, name)
+			}
+
+			if err := session.ExecuteBatch(batch); err != nil {
+				applog.E("batch execute error :%s", err)
+			}
+
+			atomic.AddUint32(&counter, uint32(len(names)))
+
+			<-time.After(*duration)
+		}
+	}()
 
 	for _ = range time.Tick(time.Second * 2) {
 		applog.I("update speed %d/s", atomic.SwapUint32(&counter, 0)/2)
