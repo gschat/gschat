@@ -75,7 +75,7 @@ func BenchmarkUpdate(b *testing.B) {
 	session := createSession()
 
 	if err := session.Query(`INSERT INTO bench.SQID_TABLE (name,id)
-		VALUES (?,?) IF NOT EXISTS`, "test", 0).Exec(); err != nil {
+		VALUES (?,?)`, "test", 0).Exec(); err != nil {
 		b.Fatal("insert:", err)
 	}
 
