@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/gschat/gocql"
@@ -99,6 +100,8 @@ func main() {
 
 	cluster.Keyspace = "bench"
 
+	counter := uint32(0)
+
 	for i := 0; i < *conns; i++ {
 
 		name := fmt.Sprintf("test%d", i)
@@ -116,8 +119,14 @@ func main() {
 					panic(err)
 				}
 
+				atomic.AddUint32(&counter, 1)
+
 				<-time.After(*duration)
 			}
 		}()
+	}
+
+	for _ = range time.Tick(time.Second * 2) {
+		applog.I("update speed %d/s", atomic.SwapUint32(&counter, 0)/2)
 	}
 }
