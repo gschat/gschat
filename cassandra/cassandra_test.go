@@ -82,7 +82,7 @@ func BenchmarkUpdate(b *testing.B) {
 	b.StartTimer()
 
 	for i := 0; i < b.N; i++ {
-		if err := session.Query(`UPDATE bench.SQID_TABLE SET id=? WHERE name="test"`, i).Exec(); err != nil {
+		if err := session.Query(`UPDATE bench.SQID_TABLE SET id=? WHERE name = ?`, i, "test").Exec(); err != nil {
 			b.Fatal("update:", err)
 		}
 	}
