@@ -14,7 +14,9 @@ import (
 
 var hosts = flag.String("raddrs", "192.168.88.2|192.168.88.3|192.168.88.4", "cassandra cluster")
 
-var conns = flag.Int("conns", 1000, "concurrent connections")
+var conns = flag.Int("conns", 10, "concurrent connections")
+
+var users = flag.Int("users", 200, "simulate users")
 
 var compress = flag.Bool("c", true, "turn on data compress")
 
@@ -117,7 +119,7 @@ func main() {
 
 	var names []string
 
-	for i := 0; i < *conns; i++ {
+	for i := 0; i < *users; i++ {
 		name := fmt.Sprintf("test%d", i)
 		names = append(names, name)
 
@@ -126,25 +128,27 @@ func main() {
 		}
 	}
 
-	go func() {
+	for j := 0; j < *conns; j++ {
+		go func() {
 
-		for i := 0; ; i++ {
+			for i := 0; ; i++ {
 
-			batch := session.NewBatch(gocql.LoggedBatch)
+				batch := session.NewBatch(gocql.LoggedBatch)
 
-			for _, name := range names {
-				batch.Query(`UPDATE bench.SQID_TABLE SET id=? WHERE name = ?`, i, name)
+				for _, name := range names {
+					batch.Query(`UPDATE bench.SQID_TABLE SET id=? WHERE name = ?`, i, name)
+				}
+
+				if err := session.ExecuteBatch(batch); err != nil {
+					applog.E("batch execute error :%s", err)
+				}
+
+				atomic.AddUint32(&counter, uint32(len(names)))
+
+				<-time.After(*duration)
 			}
-
-			if err := session.ExecuteBatch(batch); err != nil {
-				applog.E("batch execute error :%s", err)
-			}
-
-			atomic.AddUint32(&counter, uint32(len(names)))
-
-			<-time.After(*duration)
-		}
-	}()
+		}()
+	}
 
 	for _ = range time.Tick(time.Second * 2) {
 		applog.I("update speed %d/s", atomic.SwapUint32(&counter, 0)/2)
