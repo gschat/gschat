@@ -10,7 +10,7 @@ var session *gocql.Session
 
 // init the cassandra test env
 func init() {
-	cluster := gocql.NewCluster("218.90.199.5:7000", "218.90.199.7:7000", " 218.90.199.8:7000")
+	cluster := gocql.NewCluster("192.168.88.2:7000", "192.168.88.3:7000", "192.168.88.4:7000")
 
 	cluster.Keyspace = "bench"
 
