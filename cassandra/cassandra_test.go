@@ -37,7 +37,7 @@ func TestCreateKeySpace(t *testing.T) {
 	err = session.Query(`CREATE KEYSPACE bench
 	WITH replication = {
 		'class' : 'SimpleStrategy',
-		'replication_factor' : 2
+		'replication_factor' : 1
 	}`).Exec()
 
 	if err != nil {
