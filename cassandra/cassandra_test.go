@@ -44,23 +44,6 @@ func TestCreateKeySpace(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	for i := 0; i < 1000; i++ {
-
-		name := fmt.Sprintf("test%d", i)
-
-		go func() {
-			if err := session.Query(`INSERT INTO bench.SQID_TABLE (name,id) VALUES (?,?)`, name, 0).Exec(); err != nil {
-				panic(err)
-			}
-
-			for i := 0; ; i++ {
-				if err := session.Query(`UPDATE bench.SQID_TABLE SET id=? WHERE name = ?`, i, name).Exec(); err != nil {
-					panic(err)
-				}
-			}
-		}()
-	}
 }
 
 func createSession() *gocql.Session {
@@ -85,6 +68,26 @@ func TestCreateTable(t *testing.T) {
 		 )`,
 	).Exec(); err != nil {
 		t.Fatal(err)
+	}
+
+	for i := 0; i < 1000; i++ {
+
+		name := fmt.Sprintf("test%d", i)
+
+		go func() {
+			session := createSession()
+			defer session.Close()
+
+			if err := session.Query(`INSERT INTO bench.SQID_TABLE (name,id) VALUES (?,?)`, name, 0).Exec(); err != nil {
+				panic(err)
+			}
+
+			for i := 0; ; i++ {
+				if err := session.Query(`UPDATE bench.SQID_TABLE SET id=? WHERE name = ?`, i, name).Exec(); err != nil {
+					panic(err)
+				}
+			}
+		}()
 	}
 }
 
