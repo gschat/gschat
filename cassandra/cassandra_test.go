@@ -86,6 +86,8 @@ func TestCreateTable(t *testing.T) {
 				if err := session.Query(`UPDATE bench.SQID_TABLE SET id=? WHERE name = ?`, i, name).Exec(); err != nil {
 					panic(err)
 				}
+
+				<-time.After(time.Millisecond * 10)
 			}
 		}()
 	}
