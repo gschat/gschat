@@ -106,13 +106,14 @@ func main() {
 
 	counter := uint32(0)
 
+	session := createSession(cluster)
+	defer session.Close()
+
 	for i := 0; i < *conns; i++ {
 
 		name := fmt.Sprintf("test%d", i)
 
 		go func() {
-			session := createSession(cluster)
-			defer session.Close()
 
 			if err := session.Query(`INSERT INTO bench.SQID_TABLE (name,id) VALUES (?,?)`, name, 0).Exec(); err != nil {
 				panic(err)
