@@ -132,7 +132,7 @@ func main() {
 
 			batch := session.NewBatch(gocql.LoggedBatch)
 
-			for name := range names {
+			for _, name := range names {
 				batch.Query(`UPDATE bench.SQID_TABLE SET id=? WHERE name = ?`, i, name)
 			}
 
