@@ -7,7 +7,11 @@ import (
 	"github.com/gschat/gocql"
 )
 
-var cluster = gocql.NewCluster("192.168.88.2:7000", "192.168.88.3:7000", "192.168.88.4:7000")
+var cluster = gocql.NewCluster("192.168.88.2", "192.168.88.3", "192.168.88.4")
+
+func init() {
+	cluster.Port = 7000
+}
 
 func TestCreateKeySpace(t *testing.T) {
 	cluster.Keyspace = "system"
