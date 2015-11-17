@@ -79,6 +79,8 @@ func createTable(cluster *gocql.ClusterConfig) error {
 
 func main() {
 
+	flag.Parse()
+
 	defer func() {
 		if e := recover(); e != nil {
 			applog.E("%s", e)
