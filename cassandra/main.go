@@ -16,6 +16,8 @@ var hosts = flag.String("raddrs", "192.168.88.2|192.168.88.3|192.168.88.4", "cas
 
 var conns = flag.Int("conns", 1000, "concurrent connections")
 
+var rf = flag.Int("rf", 2, "data replication factor")
+
 var duration = flag.Duration("duration", time.Millisecond*10, "update duration")
 
 var applog = gslogger.Get("app")
@@ -40,11 +42,11 @@ func createKeySpace(cluster *gocql.ClusterConfig) error {
 		panic(err)
 	}
 
-	err = session.Query(`CREATE KEYSPACE bench
+	err = session.Query(fmt.Sprintf(`CREATE KEYSPACE bench
 	WITH replication = {
 		'class' : 'SimpleStrategy',
-		'replication_factor' : 2
-	}`).Exec()
+		'replication_factor' : %d
+	}`, *rf)).Exec()
 
 	if err != nil {
 		return gserrors.Newf(err, "create keyspace bench error")
