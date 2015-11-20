@@ -5,6 +5,7 @@ import (
 
 	"github.com/gschat/gschat"
 	"github.com/gsdocker/gsconfig"
+	"github.com/gsdocker/gslogger"
 )
 
 // Storage the mail storage
@@ -21,28 +22,36 @@ type Storage interface {
 }
 
 type _UserCached struct {
-	indexer  map[uint32]int // mail
-	ringbuff []*gschat.Mail // ring buffer
-	header   int            // ring header
-	tail     int            // ring tail
+	gslogger.Log                // mixin gslogger APIs
+	sync.RWMutex                // mixin read/write mutex
+	indexer      map[uint32]int // mail
+	ringbuff     []*gschat.Mail // ring buffer
+	header       int            // ring header
+	tail         int            // ring tail
 }
 
 func newUserCached(size int) *_UserCached {
 	return &_UserCached{
+		Log:      gslogger.Get("cached-storage"),
 		indexer:  make(map[uint32]int),
 		ringbuff: make([]*gschat.Mail, size),
 	}
 }
 
 func (userCached *_UserCached) Get(id uint32) (*gschat.Mail, bool) {
+
+	userCached.RLock()
 	if indexer, ok := userCached.indexer[id]; ok {
+		userCached.RUnlock()
 		return userCached.ringbuff[indexer], true
 	}
-
+	userCached.RUnlock()
 	return nil, false
 }
 
 func (userCached *_UserCached) Update(val *gschat.Mail) {
+
+	userCached.Lock()
 
 	old := userCached.ringbuff[userCached.tail]
 
@@ -66,6 +75,8 @@ func (userCached *_UserCached) Update(val *gschat.Mail) {
 			userCached.header = 0
 		}
 	}
+
+	userCached.Unlock()
 }
 
 // The memory userCached implement Storage interface
@@ -85,32 +96,36 @@ func newMemoryCached(storage Storage) *_MemoryCached {
 }
 
 func (memoryCached *_MemoryCached) Save(username string, mail *gschat.Mail) (id uint32, err error) {
-	memoryCached.Lock()
-	defer memoryCached.Unlock()
 
 	if memoryCached.storage != nil {
+
 		id, err = memoryCached.storage.Save(username, mail)
 		if err != nil {
 			return
 		}
 
-		memoryCached.seqIDs[username] = id
 	} else {
+		memoryCached.Lock()
 		id = memoryCached.seqIDs[username]
 
 		id++
 
 		memoryCached.seqIDs[username] = id
+		memoryCached.Unlock()
 	}
 
 	mail.SQID = id
 
+	memoryCached.RLock()
 	usercached, ok := memoryCached.cached[username]
+	memoryCached.RUnlock()
 
 	if !ok {
 		usercached = newUserCached(gsconfig.Int("gschat.mailhub.memorycached", 1024))
 
+		memoryCached.Lock()
 		memoryCached.cached[username] = usercached
+		memoryCached.Unlock()
 	}
 
 	usercached.Update(mail)
@@ -120,9 +135,10 @@ func (memoryCached *_MemoryCached) Save(username string, mail *gschat.Mail) (id 
 
 func (memoryCached *_MemoryCached) queryCached(username string, id uint32) (*gschat.Mail, bool) {
 	memoryCached.RLock()
-	defer memoryCached.RUnlock()
+	usercached, ok := memoryCached.cached[username]
+	memoryCached.RUnlock()
 
-	if usercached, ok := memoryCached.cached[username]; ok {
+	if ok {
 		return usercached.Get(id)
 	}
 
@@ -131,6 +147,7 @@ func (memoryCached *_MemoryCached) queryCached(username string, id uint32) (*gsc
 
 func (memoryCached *_MemoryCached) Query(username string, id uint32) (*gschat.Mail, error) {
 	if mail, ok := memoryCached.queryCached(username, id); ok {
+
 		return mail, nil
 	}
 
@@ -141,15 +158,15 @@ func (memoryCached *_MemoryCached) Query(username string, id uint32) (*gschat.Ma
 			return mail, err
 		}
 
-		memoryCached.Lock()
-		defer memoryCached.Unlock()
-
+		memoryCached.RLock()
 		usercached, ok := memoryCached.cached[username]
+		memoryCached.RUnlock()
 
 		if !ok {
 			usercached = newUserCached(gsconfig.Int("gschat.mailhub.memorycached", 1024))
-
+			memoryCached.Lock()
 			memoryCached.cached[username] = usercached
+			memoryCached.Unlock()
 		}
 
 		usercached.Update(mail)
@@ -160,41 +177,27 @@ func (memoryCached *_MemoryCached) Query(username string, id uint32) (*gschat.Ma
 	return nil, gschat.NewResourceNotFound()
 }
 
-func (memoryCached *_MemoryCached) cachedSEQID(username string) (uint32, bool) {
-	memoryCached.RLock()
-	defer memoryCached.RUnlock()
-
-	if id, ok := memoryCached.seqIDs[username]; ok {
-		return id, true
-	}
-
-	return 0, false
-}
-
 func (memoryCached *_MemoryCached) SEQID(username string) (uint32, error) {
-	if id, ok := memoryCached.cachedSEQID(username); ok {
-		return id, nil
-	}
 
 	if memoryCached.storage != nil {
 
-		id, err := memoryCached.storage.SEQID(username)
+		return memoryCached.storage.SEQID(username)
+	}
 
-		if err != nil {
-			return id, err
-		}
+	memoryCached.RLock()
+	id, ok := memoryCached.seqIDs[username]
+	memoryCached.RUnlock()
 
-		memoryCached.Lock()
-		defer memoryCached.Unlock()
-
-		memoryCached.seqIDs[username] = id
+	if ok {
 
 		return id, nil
 	}
 
-	id := uint32(1)
+	id = uint32(1)
 
+	memoryCached.Lock()
 	memoryCached.seqIDs[username] = id
+	memoryCached.Unlock()
 
 	return id, nil
 }

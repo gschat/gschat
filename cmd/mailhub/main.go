@@ -8,6 +8,7 @@ import (
 
 	"github.com/gschat/gschat"
 	"github.com/gschat/gschat/mailhub"
+	"github.com/gschat/gschat/mailhub/cql"
 	"github.com/gsdocker/gsconfig"
 	"github.com/gsdocker/gsdiscovery"
 	"github.com/gsdocker/gsdiscovery/zk"
@@ -166,7 +167,22 @@ func run(runner gsrunner.Runner) {
 
 	eventLoop := gorpc.NewEventLoop(uint32(runtime.NumCPU()), 2048, 500*time.Millisecond)
 
-	system = mailhub.New(node, nil)
+	var storage mailhub.Storage
+
+	clusters := gsconfig.String("gschat.mailhub.cassandra", "")
+
+	if clusters != "" {
+		runner.I("create cassandra storage :%s", clusters)
+		var err error
+		storage, err = cql.New(strings.Split(clusters, "|")...)
+		if err != nil {
+			gserrors.Panic(err)
+		}
+
+		runner.I("create cassandra storage -- success")
+	}
+
+	system = mailhub.New(node, storage)
 
 	context = gsagent.BuildAgent(system).Build(node, eventLoop)
 
@@ -206,6 +222,10 @@ func main() {
 		"zk-registry", "gschat.zk.regsitry", "/gschat/registry", "the zookeeper server list",
 	).FlagString(
 		"zk-nodes", "gschat.zk.nodes", "/gschat/nodes", "the zookeeper server list",
+	).FlagString(
+		"cassandra", "gschat.mailhub.cassandra", "10.0.0.210", "the zookeeper server list",
+	).FlagInt(
+		"cassandra-port", "gschat.mailhub.cassandra-port", 9042, "the zookeeper server list",
 	)
 
 	runner.Run(run)

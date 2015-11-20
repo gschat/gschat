@@ -18,7 +18,7 @@
         },
 
         "gsmake.golang.test" :[
-             {"dir":"./cassandra","flags":"-bench . -cpu 4 "}
+             {"dir":"./cql","flags":"-bench . -cpu 4 "}
        ],
 
        "gsmake.golang.binary" :{
