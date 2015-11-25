@@ -58,6 +58,7 @@ type _Storage struct {
 	session         *gocql.Session        // cql session
 	cachedID        map[string]*uint32    // cached ids
 	cachedMail      map[string][]*_Cached // cached mail
+	split           int                   // flush split
 	cqlOfKeyspace   string                // cql of create new keyspace
 	cqlOfSQID       string                // cql of create SQID table
 	cqlOfMail       string                // cql of create Mail table
@@ -75,6 +76,7 @@ func New(clusters ...string) (mailhub.Storage, error) {
 		config:          gocql.NewCluster(clusters...),
 		cachedID:        make(map[string]*uint32),
 		cachedMail:      make(map[string][]*_Cached),
+		split:           gsconfig.Int("gschat.mailhub.cql.split", 1024),
 		cqlOfKeyspace:   gsconfig.String("gschat.mailhub.cql.keyspaceCQL", cqlOfKeyspace),
 		cqlOfSQID:       gsconfig.String("gschat.mailhub.cql.SQIDCQL", cqlOfSQID),
 		cqlOfMail:       gsconfig.String("gschat.mailhub.cql.MailCQL", cqlOfMail),
@@ -140,9 +142,19 @@ func (storage *_Storage) doflush() {
 		return
 	}
 
+	max := 0
+
+	for _, usercached := range cached {
+		max += len(usercached)
+	}
+
+	storage.D("flush cached mail(%d) ...", max)
+
 	updateIDs := make(map[string]uint32)
 
 	batch := storage.session.NewBatch(gocql.LoggedBatch)
+
+	counter := 0
 
 	for name, usercached := range cached {
 
@@ -156,15 +168,40 @@ func (storage *_Storage) doflush() {
 			}
 
 			batch.Query(storage.cqlOfInsertMail, fmt.Sprintf("%s%d", name, mail.id), mail.content)
+
+			counter++
+
+			if counter%storage.split == 0 {
+
+				for name, id := range updateIDs {
+					batch.Query(storage.cqlOfUpdateSQID, id, name)
+				}
+
+				if err := storage.session.ExecuteBatch(batch); err != nil {
+					storage.E("batch execute error :%s", err)
+				} else {
+					storage.D("flush cached %d -- finish", counter)
+				}
+
+				updateIDs = make(map[string]uint32)
+
+				batch = storage.session.NewBatch(gocql.LoggedBatch)
+
+			}
 		}
 	}
 
-	for name, id := range updateIDs {
-		batch.Query(storage.cqlOfUpdateSQID, id, name)
-	}
+	if counter%storage.split > 0 {
 
-	if err := storage.session.ExecuteBatch(batch); err != nil {
-		storage.E("batch execute error :%s", err)
+		for name, id := range updateIDs {
+			batch.Query(storage.cqlOfUpdateSQID, id, name)
+		}
+
+		if err := storage.session.ExecuteBatch(batch); err != nil {
+			storage.E("batch execute error :%s", err)
+		} else {
+			storage.D("flush cached %d -- finish", counter)
+		}
 	}
 
 	storage.D("flush cached mail -- finish")
@@ -237,8 +274,9 @@ func (storage *_Storage) Save(username string, mail *gschat.Mail) (uint32, error
 		id:      mail.SQID,
 		content: buff.Bytes(),
 	}
-
+	storage.Lock()
 	storage.cachedMail[username] = append(storage.cachedMail[username], cached)
+	storage.Unlock()
 
 	return mail.SQID, nil
 }

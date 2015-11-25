@@ -25,7 +25,7 @@
            "gschat-proxy":"./cmd/proxy",
            "gschat-simulator":"./cmd/simulator",
            "gschat-mailhub":"./cmd/mailhub",
-           "cassandra-test":"./cassandra"
+           "cql-insert":"./cql"
        }
     }
 }

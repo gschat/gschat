@@ -4,153 +4,86 @@ import (
 	"flag"
 	"fmt"
 	"strings"
-	"sync/atomic"
 	"time"
 
-	"github.com/gschat/gocql"
-	"github.com/gsdocker/gserrors"
+	"github.com/gschat/gschat"
+	"github.com/gschat/gschat/mailhub"
+	"github.com/gschat/gschat/mailhub/cql"
 	"github.com/gsdocker/gslogger"
 )
 
-var hosts = flag.String("raddrs", "192.168.88.2|192.168.88.3|192.168.88.4", "cassandra cluster")
+var clusters = flag.String("raddrs", "10.0.0.210", "cassandra cluster")
 
-var conns = flag.Int("conns", 10, "concurrent connections")
+var users = flag.Int("users", 1024, "users")
 
-var users = flag.Int("users", 200, "simulate users")
+var writers = flag.Int("writers", 10, "concurrency writers")
 
-var compress = flag.Bool("c", true, "turn on data compress")
+var content = flag.String("msg", "1111111111111111111", "write content")
 
-var rf = flag.Int("rf", 2, "data replication factor")
+var counter = flag.Int("num", 1024*10, "write messages of one user")
 
-var duration = flag.Duration("duration", time.Millisecond*10, "update duration")
+var sleep = flag.Duration("s", 100*time.Millisecond, "write sleep duration")
 
-var applog = gslogger.Get("app")
-
-func createKeySpace(cluster *gocql.ClusterConfig) error {
-	cluster.Keyspace = "system"
-
-	cluster.Timeout = 60 * time.Second
-
-	if *compress {
-		cluster.Compressor = &gocql.SnappyCompressor{}
-	}
-
-	var err error
-
-	session, err := cluster.CreateSession()
-
-	if err != nil {
-		return gserrors.Newf(err, "create sessione rror")
-	}
-
-	defer session.Close()
-
-	err = session.Query(`DROP KEYSPACE IF EXISTS bench`).Exec()
-	if err != nil {
-		panic(err)
-	}
-
-	err = session.Query(fmt.Sprintf(`CREATE KEYSPACE bench
-	WITH replication = {
-		'class' : 'SimpleStrategy',
-		'replication_factor' : %d
-	}`, *rf)).Exec()
-
-	if err != nil {
-		return gserrors.Newf(err, "create keyspace bench error")
-	}
-
-	return nil
-}
-
-func createSession(cluster *gocql.ClusterConfig) *gocql.Session {
-	session, err := cluster.CreateSession()
-	if err != nil {
-		gserrors.Panicf(err, "create session error")
-	}
-
-	return session
-}
-
-func createTable(cluster *gocql.ClusterConfig) error {
-
-	session := createSession(cluster)
-
-	defer session.Close()
-
-	if err := session.Query(`CREATE TABLE bench.SQID_TABLE(name varchar,id int,PRIMARY KEY (name))`).Exec(); err != nil {
-		gserrors.Newf(err, "create SQID_TABLE error")
-	}
-
-	return nil
-}
+var applog = gslogger.Get("cql-insert")
 
 func main() {
-
 	flag.Parse()
 
-	defer func() {
-		if e := recover(); e != nil {
-			applog.E("%s", e)
-		}
+	storage, err := cql.New(strings.Split(*clusters, "|")...)
 
-		gslogger.Join()
-	}()
-
-	cluster := gocql.NewCluster(strings.Split(*hosts, "|")...)
-
-	cluster.ProtoVersion = 4
-	cluster.CQLVersion = "3.3.1"
-
-	if err := createKeySpace(cluster); err != nil {
+	if err != nil {
 		panic(err)
 	}
 
-	if err := createTable(cluster); err != nil {
-		panic(err)
+	exit := make(chan bool, *writers)
+
+	for i := 0; i < *writers; i++ {
+		go write(exit, i, storage)
 	}
 
-	cluster.Keyspace = "bench"
-
-	counter := uint32(0)
-
-	session := createSession(cluster)
-	defer session.Close()
-
-	var names []string
-
-	for i := 0; i < *users; i++ {
-		name := fmt.Sprintf("test%d", i)
-		names = append(names, name)
-
-		if err := session.Query(`INSERT INTO bench.SQID_TABLE (name,id) VALUES (?,?)`, name, 0).Exec(); err != nil {
-			panic(err)
-		}
+	for i := 0; i < *writers; i++ {
+		<-exit
 	}
+}
 
-	for j := 0; j < *conns; j++ {
-		go func() {
+func write(exit chan bool, id int, storage mailhub.Storage) {
+	c := *users / *writers
 
-			for i := 0; ; i++ {
+	mail := gschat.NewMail()
 
-				batch := session.NewBatch(gocql.LoggedBatch)
+	mail.Sender = "cql-test"
+	mail.Type = gschat.MailTypeSingle
+	mail.Content = *content
 
-				for _, name := range names {
-					batch.Query(`UPDATE bench.SQID_TABLE SET id=? WHERE name = ?`, i, name)
-				}
+	timer := time.NewTimer(*sleep)
 
-				if err := session.ExecuteBatch(batch); err != nil {
-					applog.E("batch execute error :%s", err)
-				}
+	flag := 0
 
-				atomic.AddUint32(&counter, uint32(len(names)))
+	for i := c * id; i < c*(id+1); i++ {
 
-				<-time.After(*duration)
+		mail.Receiver = fmt.Sprintf("username(%d)", id)
+
+		for j := 0; j < *counter; j++ {
+
+			flag++
+
+			_, err := storage.Save(mail.Receiver, mail)
+
+			if err != nil {
+				applog.E("save mail(%s) error :%s", err)
 			}
-		}()
+
+			if flag == 1024 {
+
+				flag = 0
+
+				timer.Reset(*sleep)
+
+				<-timer.C
+			}
+
+		}
 	}
 
-	for _ = range time.Tick(time.Second * 2) {
-		applog.I("update speed %d/s", atomic.SwapUint32(&counter, 0)/2)
-	}
+	exit <- true
 }

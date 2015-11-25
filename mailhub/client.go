@@ -85,8 +85,6 @@ func (client *_Client) notifyLoop() {
 
 			client.notifyClient(id)
 
-			client.I("send %s's message notify to device %s", client.mailbox.username, client.agent.ID())
-
 		case <-client.closed:
 			client.V("stop notify goroutine for device %s login with %s", client.agent.ID(), client.mailbox.username)
 			return
@@ -104,6 +102,8 @@ func (client *_Client) notifyClient(id uint32) {
 
 	if err != nil {
 		client.E("user %s(%s) notify groutine query received id error :%s", client.mailbox.username, client.agent.ID(), err)
+	} else {
+		client.I("send %s's message notify(%d) to device %s", client.mailbox.username, id, client.agent.ID())
 	}
 }
 
